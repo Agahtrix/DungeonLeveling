@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Dungeon Leveling</title>
+    <style>
+/* Basic Reset & Defaults */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    font-size: 16px; /* Base font size */
+}
+
+body {
+    font-family: 'Roboto', Arial, sans-serif;
+    line-height: 1.6;
+    margin: 0; /* Remove default body margin */
+    padding: 15px; /* Add padding around the container */
+    background-color: #1a1a1a; /* Darker background */
+    color: #e0e0e0; /* Light text for contrast */
+    display: flex;
+    justify-content: center;
+    align-items: flex-start; /* Align container to top */
+    min-height: 100vh;
+}
+
+/* Container */
+.container {
+    width: 100%;
+    max-width: 700px; /* Max width for larger screens */
+    margin: 0 auto; /* Center container */
+    background: #2d2d2d; /* Slightly lighter dark background for container */
+    padding: 20px 25px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+}
+
+/* Headings and Text */
+.page-title {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #00aeff; /* Accent color for title */
+}
+
+h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #bb86fc; /* Another accent color for section titles */
+    border-bottom: 1px solid #444;
+    padding-bottom: 5px;
+}
+
+/* Loading / Error Messages */
+.loading-indicator {
+    font-style: italic;
+    color: #aaa;
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.error-message {
+    color: #cf6679; /* Softer red for errors */
+    font-weight: bold;
+    margin-top: 10px;
+    background-color: rgba(207, 102, 121, 0.1);
+    padding: 10px;
+    border-radius: 4px;
+    border-left: 3px solid #cf6679;
+}
+
+.game-over {
+    font-weight: bold;
+    color: #cf6679; /* Consistent error/danger color */
+    margin-top: 20px;
+    text-align: center;
+    font-size: 1.5rem;
+    padding: 15px;
+    background-color: rgba(45, 45, 45, 0.8);
+    border-radius: 5px;
+}
+
+/* Forms & Inputs */
+.form-section {
+    margin-bottom: 20px;
+    padding: 15px;
+    background-color: #333;
+    border-radius: 6px;
+}
+#character-creation .form-section { /* Specific style for creation */
+     background-color: #383838;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #ccc;
+}
+
+input[type="text"],
+input[type="number"] {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #555;
+    background-color: #444;
+    color: #e0e0e0;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus {
+    outline: none;
+    border-color: #00aeff;
+    box-shadow: 0 0 5px rgba(0, 174, 255, 0.5);
+}
+
+/* Buttons */
+.btn {
+    display: inline-block; /* Allow multiple buttons side-by-side if needed */
+    padding: 12px 20px;
+    margin: 5px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    border: none;
+    border-radius: 5px;
+    text-align: center;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+    color: #fff; /* White text on buttons */
+}
+
+.btn:hover {
+    opacity: 0.9;
+}
+.btn:active {
+     transform: scale(0.98);
+}
+
+.btn-primary {
+    background-color: #007bff; /* Primary action color */
+}
+.btn-primary:hover {
+    background-color: #0056b3;
+}
+
+.btn-danger {
+    background-color: #dc3545; /* Danger action color */
+}
+.btn-danger:hover {
+    background-color: #a71d2a;
+}
+
+/* Make specific buttons full width if needed */
+#start-form .btn-primary {
+    width: 100%; /* Make start button full width */
+    margin: 10px 0 0 0; /* Adjust margin */
+}
+#restart-button {
+     width: calc(100% - 10px); /* Full width minus margin */
+     margin: 5px;
+}
+
+/* Game Status Layout */
+.stats-area {
+    display: flex;
+    flex-wrap: wrap; /* Allow wrapping on small screens */
+    gap: 20px; /* Space between player/enemy stats */
+    margin-bottom: 20px;
+}
+
+.stats {
+    flex: 1; /* Allow stats sections to grow */
+    min-width: 200px; /* Minimum width before wrapping */
+    background-color: #333;
+    padding: 15px;
+    border-radius: 4px;
+}
+
+#player-stats, #enemy-stats {
+    /* Style individual stats if needed, e.g., using spans */
+    line-height: 1.8;
+}
+#player-stats span, #enemy-stats span {
+    display: block; /* Put each stat on a new line */
+    margin-bottom: 4px;
+}
+#player-stats strong, #enemy-stats strong {
+    color: #00aeff; /* Highlight stat names */
+}
+
+
+/* Map Area */
+.map {
+    margin-bottom: 20px;
+    background: #333;
+    padding: 15px;
+    border-radius: 6px;
+    text-align: center; /* Center map title */
+}
+
+#map-image {
+    display: block;
+    max-width: 100%; /* Responsive image */
+    height: auto; /* Maintain aspect ratio */
+    margin: 10px auto 0 auto; /* Center image with space above */
+    border: 1px solid #555;
+    border-radius: 4px;
+    background-color: #444; /* Placeholder background */
+}
+
+/* Separator */
+.separator {
+    border: 0;
+    height: 1px;
+    background: #444;
+    margin: 25px 0;
+}
+
+/* Log Area */
+.log {
+    margin-bottom: 20px;
+}
+
+#log-content {
+    max-height: 200px; /* Increased height */
+    overflow-y: auto;
+    border: 1px solid #444;
+    padding: 15px;
+    background: #252525; /* Slightly different dark for log */
+    border-radius: 6px;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: #ccc; /* Slightly dimmer text in log */
+}
+/* Nicer Scrollbar (Webkit browsers) */
+#log-content::-webkit-scrollbar {
+  width: 8px;
+}
+#log-content::-webkit-scrollbar-track {
+  background: #333;
+  border-radius: 4px;
+}
+#log-content::-webkit-scrollbar-thumb {
+  background-color: #555;
+  border-radius: 4px;
+  border: 2px solid #333;
+}
+
+/* Action Buttons Area */
+.action-buttons {
+    margin-bottom: 20px;
+    display: flex;
+    flex-wrap: wrap; /* Allow buttons to wrap */
+    justify-content: center; /* Center buttons horizontally */
+    gap: 10px; /* Space between buttons */
+}
+/* Style action buttons added by JS */
+.action-buttons button {
+     background-color: #03dac6; /* Teal accent for actions */
+     color: #1a1a1a; /* Dark text on light button */
+     flex-grow: 1; /* Allow buttons to grow */
+     max-width: calc(50% - 10px); /* Max 2 buttons per row on larger screens */
+     min-width: 120px; /* Minimum width */
+}
+.action-buttons button:hover {
+    background-color: #01bfaa;
+}
+
+/* Utility Class */
+.hidden {
+    display: none !important; /* Ensure hidden override */
+}
+
+/* Responsive Adjustments */
+@media (max-width: 600px) {
+    body {
+        padding: 10px; /* Less padding on small screens */
+    }
+    .container {
+        padding: 15px;
+    }
+
+    .stats-area {
+        flex-direction: column; /* Stack player/enemy stats */
+        gap: 15px;
+    }
+
+    .action-buttons button {
+        max-width: 100%; /* Allow action buttons to take full width */
+    }
+
+    h2 {
+        font-size: 1.6rem;
+    }
+    h3 {
+        font-size: 1.1rem;
+    }
+}
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <h2 id="page-title">Carregando...</h2>
+    <div id="loading-indicator">Buscando estado do jogo...</div>
+    <div id="error-message" class="hidden"></div>
+
+    <div id="character-creation" class="hidden">
+        <form id="start-form">
+            Nome: <input type="text" id="player-name" name="name" placeholder="Seu nome" required><br><br>
+            Classe (1-8): <input type="number" id="player-class" name="class" min="1" max="8" value="1" required><br><br>
+            <button type="submit">Iniciar Jogo</button>
+        </form>
+    </div>
+
+    <div id="game-status" class="hidden">
+
+        <div class="stats">
+            <h3>Jogador</h3>
+            <div id="player-stats">Carregando...</div>
+        </div>
+
+        <div id="enemy-section" class="stats hidden">
+            <h3>Inimigo</h3>
+            <div id="enemy-stats"></div>
+        </div>
+
+        <div class="map">
+             <img id="map-image" src="" alt="Mapa do jogo">
+        </div>
+        <hr>
+
+        <div class="log">
+            <h3>Histórico</h3>
+            <div id="log-content">Carregando...</div>
+        </div>
+
+        <div id="action-buttons" class="forms">
+            </div>
+
+         <div class="forms">
+             <button id="restart-button">Reiniciar Jogo</button>
+        </div>
+        <div id="game-over-message" class="hidden" style="font-weight: bold; color: darkred; margin-top: 15px;">
+            GAME OVER
+        </div>
+
+    </div> </div> <script>
+    // --- DOM Elements ---
+    const pageTitle = document.getElementById('page-title');
+    const loadingIndicator = document.getElementById('loading-indicator');
+    const errorMessage = document.getElementById('error-message');
+    const characterCreationDiv = document.getElementById('character-creation');
+    const gameStatusDiv = document.getElementById('game-status');
+    const playerStatsDiv = document.getElementById('player-stats');
+    const enemySectionDiv = document.getElementById('enemy-section');
+    const enemyStatsDiv = document.getElementById('enemy-stats');
+    const mapImage = document.getElementById('map-image');
+    const logContentDiv = document.getElementById('log-content');
+    const actionButtonsDiv = document.getElementById('action-buttons');
+    const startForm = document.getElementById('start-form');
+    const playerNameInput = document.getElementById('player-name');
+    const playerClassInput = document.getElementById('player-class');
+    const restartButton = document.getElementById('restart-button');
+    const gameOverMessage = document.getElementById('game-over-message');
+
+    // --- API Endpoint ---
+    const API_URL = '/api/game_state';
+
+    // --- Functions ---
+
+    function showLoading(isLoading) {
+        if (isLoading) {
+            loadingIndicator.classList.remove('hidden');
+            errorMessage.classList.add('hidden'); // Hide errors when loading
+        } else {
+            loadingIndicator.classList.add('hidden');
+        }
+    }
+
+    function showError(message) {
+        errorMessage.textContent = `Erro: ${message}`;
+        errorMessage.classList.remove('hidden');
+        showLoading(false); // Hide loading indicator on error
+    }
+
+    // Updates the entire UI based on the game state received from the server
+    function updateUI(state) {
+        showLoading(false);
+        errorMessage.classList.add('hidden'); // Clear previous errors
+
+        if (!state) {
+             showError("Recebido estado inválido do servidor.");
+             return;
+        }
+
+        if (state.needs_setup) {
+            pageTitle.textContent = "Novo Jogo";
+            characterCreationDiv.classList.remove('hidden');
+            gameStatusDiv.classList.add('hidden');
+        } else {
+            pageTitle.textContent = "Status do Jogo";
+            characterCreationDiv.classList.add('hidden');
+            gameStatusDiv.classList.remove('hidden');
+
+            // Update Player Stats
+            if (state.player) {
+                 playerStatsDiv.innerHTML = `Nome: ${state.player.name || 'N/A'}<br>
+                                           HP: ${state.player.hp ?? 'N/A'}/${state.player.max_hp ?? 'N/A'}<br>
+                                           Classe: ${state.player.class_number ?? 'N/A'}<br>
+                                           Defesa: ${state.player.def ?? 'N/A'}<br> 
+                                           Ataque: ${state.player.atk ?? 'N/A'}<br>
+                                           Especial: ${state.player.special ?? 'N/A'}<br>`;
+                                           // Add other stats as needed from state.player
+            } else {
+                 playerStatsDiv.textContent = "Dados do jogador indisponíveis.";
+            }
+
+
+            // Update Enemy Stats
+            if (state.enemy) {
+                enemySectionDiv.classList.remove('hidden');
+                enemyStatsDiv.innerHTML = `Nome: ${state.enemy.name || 'N/A'}<br>
+                                           HP: ${state.enemy.hp ?? 'N/A'}/${state.enemy.max_hp ?? 'N/A'}
+                                           Classe: ${state.enemy.class_number ?? 'N/A'}<br>
+                                           Defesa: ${state.enemy.def ?? 'N/A'}<br> 
+                                           Ataque: ${state.enemy.atk ?? 'N/A'}<br>
+                                           Especial: ${state.enemy.special ?? 'N/A'}<br>`; 
+                                           // Add other stats as needed
+            } else {
+                enemySectionDiv.classList.add('hidden');
+                enemyStatsDiv.innerHTML = ""; // Clear content when no enemy
+            }
+
+            // Update Map
+            mapImage.src = state.map_path || ''; // Use default empty string if no path
+
+            // Update Log
+            logContentDiv.innerHTML = ""; // Clear previous log
+            if (state.log && state.log.length > 0) {
+                state.log.forEach(entry => {
+                    logContentDiv.innerHTML += entry + "<br>";
+                });
+                // Scroll to the bottom of the log
+                logContentDiv.scrollTop = logContentDiv.scrollHeight;
+            } else {
+                 logContentDiv.innerHTML = "Nenhum histórico.";
+            }
+
+
+            // Update Action Buttons
+            actionButtonsDiv.innerHTML = ""; // Clear old buttons
+            gameOverMessage.classList.add('hidden');
+
+            if (state.game_over) {
+                 gameOverMessage.classList.remove('hidden');
+                 // No action buttons if game is over
+            } else {
+                let buttons = [];
+                if (state.enemy) { // Combat buttons
+                    buttons = [
+                        { value: 'a', text: 'Atacar' },
+                        { value: 's', text: 'Habilidade Especial' },
+                        { value: 't', text: 'Fugir' }
+                    ];
+                } else { // Movement buttons
+                    buttons = [
+                        { value: 'l', text: '⬅️ Oeste' },
+                        { value: 'f', text: '⬆️ Norte' },
+                        { value: 'b', text: '⬇️ Sul' },
+                        { value: 'r', text: '➡️ Leste' }
+                    ];
+                }
+
+                buttons.forEach(btnInfo => {
+                    const button = document.createElement('button');
+                    button.type = 'button'; // Important: prevent form submission
+                    button.value = btnInfo.value;
+                    button.textContent = btnInfo.text;
+                    button.addEventListener('click', handleActionButtonClick);
+                    actionButtonsDiv.appendChild(button);
+                });
+            }
+        }
+    }
+
+    // Handles clicks on dynamically generated action buttons
+    function handleActionButtonClick(event) {
+        const action = event.target.value;
+        if (action) {
+            sendAction(action);
+        }
+    }
+
+    // Sends an action to the server and updates the UI with the response
+    async function sendAction(action, params = {}) {
+        showLoading(true);
+        let url = `${API_URL}?action=${encodeURIComponent(action)}`;
+
+        // Add other parameters for 'start' action, etc.
+        for (const key in params) {
+            url += `&${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`;
+        }
+
+        try {
+            console.log("Sending request:", url); // Debugging line
+            const response = await fetch(url, { cache: 'no-store' }); // Prevent caching API responses
+             console.log("Received response status:", response.status); // Debugging line
+
+            if (!response.ok) {
+                // Try to get error message from response body if possible
+                let errorText = `HTTP status ${response.status}`;
+                try {
+                     const errorData = await response.json();
+                     errorText = errorData.error || errorText;
+                } catch(e) { /* Ignore if response is not JSON */ }
+                throw new Error(errorText);
+            }
+
+            const state = await response.json();
+             console.log("Received state:", state); // Debugging line
+            updateUI(state);
+
+        } catch (error) {
+            console.error("Fetch error:", error);
+            showError(`Falha ao comunicar com o servidor: ${error.message}`);
+            // Optionally update UI to a safe state or show limited info
+            showLoading(false); // Ensure loading is hidden on error
+        }
+    }
+
+    // --- Event Listeners ---
+
+    // Initial load: Fetch the current game state when the page is ready
+    document.addEventListener('DOMContentLoaded', () => {
+         console.log("DOM Loaded, fetching initial state...");
+         sendAction('get_state'); // Send a neutral action to just get the current state
+    });
+
+    // Handle Character Creation Form Submission
+    startForm.addEventListener('submit', (event) => {
+        event.preventDefault(); // Prevent default form submission (page reload)
+        const name = playerNameInput.value.trim();
+        const classNumber = playerClassInput.value;
+        if (name) {
+            sendAction('start', { name: name, class: classNumber });
+        } else {
+             showError("Por favor, insira um nome.");
+        }
+
+    });
+
+    // Handle Restart Button Click
+    restartButton.addEventListener('click', () => {
+        if (confirm("Tem certeza que deseja reiniciar o jogo? Todo o progresso será perdido.")) {
+             sendAction('restart');
+        }
+    });
+
+</script>
+
+</body>
+</html>

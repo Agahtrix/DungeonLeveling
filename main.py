@@ -95,7 +95,7 @@ class Being:
             random_index = random.randint(0, 3)
             movement = sides[random_index]
             new_position = self.position + movement
-            print(f"NPC {self.name} tentando mover de {self.position} para {new_position}")
+            # print(f"NPC {self.name} tentando mover de {self.position} para {new_position}")
             if (not any(np.array_equal(new_position, enemy.position) for enemy in enemies)
                     and (not np.array_equal(new_position, player.position))
                     and (int(map[tuple(new_position)]) in walkable)):

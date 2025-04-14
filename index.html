@@ -208,14 +208,54 @@ input[type="number"]:focus {
     text-align: center; /* Center map title */
 }
 
+/* New styles for the map container and icons */
+.map-area {
+    position: relative; /* Establishes positioning context for icons */
+    display: inline-block; /* Shrink wrap the image */
+    line-height: 0; /* Prevent extra space below image */
+    margin-top: 10px; /* Space below title */
+}
+
 #map-image {
     display: block;
-    max-width: 100%; /* Responsive image */
-    height: auto; /* Maintain aspect ratio */
-    margin: 10px auto 0 auto; /* Center image with space above */
+    max-width: 100%;
+    height: auto;
     border: 1px solid #555;
     border-radius: 4px;
-    background-color: #444; /* Placeholder background */
+    background-color: #444;
+}
+
+.character-icon {
+    position: absolute; /* Position relative to map-area */
+    width: 24px;       /* Adjust size as needed */
+    height: 24px;      /* Adjust size as needed */
+    /* Center the icon on its coordinates */
+    transform-origin: center center;
+    /* Improve rendering for pixel art if char.png is low-res */
+    image-rendering: pixelated;
+    image-rendering: auto;
+    pointer-events: none; /* Make icon non-interactive */
+    /* Add a subtle border or effect if desired */
+    /* border: 1px solid yellow; */
+}
+
+/* Optional: Differentiate player/enemy visually */
+.enemy-icon {
+     /* Example: make enemy red-ish */
+    filter: hue-rotate(180deg) brightness(1.1);
+}
+
+/* Separator - Ensure it's still visible */
+.separator {
+    border: 0;
+    height: 1px;
+    background: #444;
+    margin: 25px 0;
+}
+
+/* Ensure the hr doesn't mess up flex/grid layouts if used later */
+hr {
+    width: 100%;
 }
 
 /* Separator */
@@ -336,9 +376,15 @@ input[type="number"]:focus {
         </div>
 
         <div class="map">
-             <img id="map-image" src="" alt="Mapa do jogo">
+            <h3>Mapa</h3>
+            <!-- Add a container for positioning -->
+            <div class="map-area">
+                <img id="map-image" src="" alt="Mapa do jogo">
+                <!-- Character icons will be added here by JavaScript -->
+            </div>
         </div>
-        <hr>
+        <hr class="separator"> <!-- Moved separator below the map-area -->
+
 
         <div class="log">
             <h3>Histórico</h3>
@@ -395,6 +441,7 @@ input[type="number"]:focus {
     }
 
     // Updates the entire UI based on the game state received from the server
+    // Updates the entire UI based on the game state received from the server
     function updateUI(state) {
         showLoading(false);
         errorMessage.classList.add('hidden'); // Clear previous errors
@@ -413,86 +460,182 @@ input[type="number"]:focus {
             characterCreationDiv.classList.add('hidden');
             gameStatusDiv.classList.remove('hidden');
 
-            // Update Player Stats
+            // --- Update Player Stats ---
             if (state.player) {
-                 playerStatsDiv.innerHTML = `Nome: ${state.player.name || 'N/A'}<br>
-                                           HP: ${state.player.hp ?? 'N/A'}/${state.player.max_hp ?? 'N/A'}<br>
-                                           Classe: ${state.player.class_number ?? 'N/A'}<br>
-                                           Defesa: ${state.player.def ?? 'N/A'}<br> 
-                                           Ataque: ${state.player.atk ?? 'N/A'}<br>
-                                           Especial: ${state.player.special ?? 'N/A'}<br>`;
-                                           // Add other stats as needed from state.player
+                 // Use span tags for better potential styling
+                 playerStatsDiv.innerHTML = `<span><strong>Nome:</strong> ${state.player.name || 'N/A'}</span>
+                                           <span><strong>HP:</strong> ${state.player.hp ?? 'N/A'}/${state.player.max_hp ?? 'N/A'}</span>
+                                           <span><strong>Classe:</strong> ${state.player.class_number ?? 'N/A'}</span>
+                                           <span><strong>Defesa:</strong> ${state.player.def ?? 'N/A'}</span>
+                                           <span><strong>Ataque:</strong> ${state.player.atk ?? 'N/A'}</span>
+                                           <span><strong>Especial:</strong> ${state.player.special ?? 'N/A'}</span>`;
+                                           // Removed position/facing from text stats
             } else {
                  playerStatsDiv.textContent = "Dados do jogador indisponíveis.";
             }
 
 
-            // Update Enemy Stats
+            // --- Update Enemy Stats ---
             if (state.enemy) {
                 enemySectionDiv.classList.remove('hidden');
-                enemyStatsDiv.innerHTML = `Nome: ${state.enemy.name || 'N/A'}<br>
-                                           HP: ${state.enemy.hp ?? 'N/A'}/${state.enemy.max_hp ?? 'N/A'}
-                                           Classe: ${state.enemy.class_number ?? 'N/A'}<br>
-                                           Defesa: ${state.enemy.def ?? 'N/A'}<br> 
-                                           Ataque: ${state.enemy.atk ?? 'N/A'}<br>
-                                           Especial: ${state.enemy.special ?? 'N/A'}<br>`; 
-                                           // Add other stats as needed
+                enemyStatsDiv.innerHTML = `<span><strong>Nome:</strong> ${state.enemy.name || 'N/A'}</span>
+                                           <span><strong>HP:</strong> ${state.enemy.hp ?? 'N/A'}/${state.enemy.max_hp ?? 'N/A'}</span>
+                                           <span><strong>Classe:</strong> ${state.enemy.class_number ?? 'N/A'}</span>
+                                           <span><strong>Defesa:</strong> ${state.enemy.def ?? 'N/A'}</span>
+                                           <span><strong>Ataque:</strong> ${state.enemy.atk ?? 'N/A'}</span>
+                                           <span><strong>Especial:</strong> ${state.enemy.special ?? 'N/A'}</span>`;
+                                           // Removed position/facing from text stats
             } else {
                 enemySectionDiv.classList.add('hidden');
                 enemyStatsDiv.innerHTML = ""; // Clear content when no enemy
             }
 
-            // Update Map
-            mapImage.src = state.map_path || ''; // Use default empty string if no path
+            // --- Update Map and Place Icons ---
+            const mapArea = document.querySelector('.map-area');
+            // Clear existing icons *before* setting onload/src
+            mapArea.querySelectorAll('.character-icon').forEach(icon => icon.remove());
 
-            // Update Log
+            // Function to create and place an icon
+            const placeIcon = (entity, type) => {
+                if (!entity || !entity.position || entity.position.length !== 2) return; // Guard clause
+
+                const mapWidth = mapImage.offsetWidth;
+                const mapHeight = mapImage.offsetHeight;
+
+                // Ensure dimensions are valid
+                if (mapWidth <= 0 || mapHeight <= 0) {
+                    console.warn("Map dimensions are zero, cannot place icons yet.");
+                    return;
+                }
+
+                const [relY, relX] = entity.position; // API format is [Y, X]
+                const top = relY * mapHeight;
+                const left = relX * mapWidth;
+                const facing = entity.facing || 'b'; // Default facing south ('b')
+
+                let rotation = 0; // degrees
+                switch (facing) {
+                    case 'r': rotation = -90; break; // Leste (90 anti-horario)
+                    case 'f': rotation = 180; break; // Norte (180 anti-horario)
+                    case 'l': rotation = 90;  break; // Oeste (270 anti-horario)
+                    case 'b': // Sul (0) - falls through to default
+                    default:  rotation = 0;   break;
+                }
+
+                const icon = document.createElement('img');
+                icon.src = 'char.png'; // Assume same icon file for both for now
+                icon.alt = type === 'player' ? 'Jogador' : 'Inimigo';
+                icon.classList.add('character-icon');
+                if (type === 'enemy') {
+                    icon.classList.add('enemy-icon'); // Add class for specific styling
+                }
+
+                // Apply styles for positioning and rotation
+                // Using style directly as it's dynamic per icon
+                icon.style.position = 'absolute';
+                icon.style.top = `${top}px`;
+                icon.style.left = `${left}px`;
+                // Translate first to center, then rotate
+                icon.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
+
+                mapArea.appendChild(icon);
+            };
+
+            // Set up onload handler *before* setting src
+            mapImage.onload = () => {
+                //console.log("Map image loaded, placing icons.");
+                // Clear any icons that might have been added prematurely (if any)
+                mapArea.querySelectorAll('.character-icon').forEach(icon => icon.remove());
+                // Place icons now that dimensions are known
+                placeIcon(state.player, 'player');
+                placeIcon(state.enemy, 'enemy');
+            };
+
+            mapImage.onerror = () => {
+                 console.error("Falha ao carregar a imagem do mapa:", mapImage.src);
+                 // Clear icons if map fails to load
+                 mapArea.querySelectorAll('.character-icon').forEach(icon => icon.remove());
+            };
+
+            // Set the map source (this triggers onload if src changes or loads for the first time)
+            const newMapPath = state.map_path || '';
+            if (mapImage.src !== newMapPath) {
+                 //console.log("Setting new map src:", newMapPath);
+                 mapImage.src = newMapPath;
+            } else if (mapImage.complete && newMapPath) {
+                 // If src hasn't changed BUT it's already loaded (e.g., cached),
+                 // and the path isn't empty, manually trigger the icon placement.
+                 //console.log("Map src unchanged but complete, manually placing icons.");
+                 mapImage.onload(); // Manually call the onload handler logic
+            } else if (!newMapPath) {
+                 // If the new path is empty, clear the src and any icons
+                 mapImage.src = '';
+                 mapArea.querySelectorAll('.character-icon').forEach(icon => icon.remove());
+            }
+
+
+            // --- Update Log ---
             logContentDiv.innerHTML = ""; // Clear previous log
             if (state.log && state.log.length > 0) {
                 state.log.forEach(entry => {
-                    logContentDiv.innerHTML += entry + "<br>";
+                    // Sanitize entry slightly - replace < and > to prevent accidental HTML injection
+                    const safeEntry = entry.replace(/</g, "<").replace(/>/g, ">");
+                    logContentDiv.innerHTML += safeEntry + "<br>";
                 });
                 // Scroll to the bottom of the log
                 logContentDiv.scrollTop = logContentDiv.scrollHeight;
             } else {
-                 logContentDiv.innerHTML = "Nenhum histórico.";
+                 logContentDiv.innerHTML = "<i>Nenhum histórico.</i>"; // Italicize empty message
             }
 
 
-            // Update Action Buttons
+            // --- Update Action Buttons ---
             actionButtonsDiv.innerHTML = ""; // Clear old buttons
+            actionButtonsDiv.className = 'action-buttons'; // Reset class name if it was changed
             gameOverMessage.classList.add('hidden');
 
             if (state.game_over) {
                  gameOverMessage.classList.remove('hidden');
-                 // No action buttons if game is over
+                 // Optionally disable restart button or change its text?
             } else {
                 let buttons = [];
+                // Define base button classes
+                const baseButtonClasses = ['btn']; // Use the base button class
+
                 if (state.enemy) { // Combat buttons
                     buttons = [
-                        { value: 'a', text: 'Atacar' },
-                        { value: 's', text: 'Habilidade Especial' },
-                        { value: 't', text: 'Fugir' }
+                        { value: 'a', text: '⚔️ Atacar', classes: ['btn-danger'] }, // Use danger for attack
+                        { value: 's', text: '✨ Habilidade', classes: ['btn-primary'] }, // Use primary for special
+                        { value: 't', text: '🏃 Fugir', classes: [] } // Default style for flee? Or add a specific one
                     ];
+                     // Add class to container for potential combat-specific layout
+                    actionButtonsDiv.classList.add('combat-actions');
                 } else { // Movement buttons
                     buttons = [
-                        { value: 'l', text: '⬅️ Oeste' },
-                        { value: 'f', text: '⬆️ Norte' },
-                        { value: 'b', text: '⬇️ Sul' },
-                        { value: 'r', text: '➡️ Leste' }
+                        { value: 'l', text: ' ⬅️ ', classes: [] },
+                        { value: 'f', text: ' ⬆️ ', classes: [] },
+                        { value: 'b', text: ' ⬇️ ', classes: [] },
+                        { value: 'r', text: ' ➡️ ', classes: [] }
                     ];
+                    // Add class to container for potential movement-specific layout
+                    actionButtonsDiv.classList.add('movement-actions');
                 }
 
                 buttons.forEach(btnInfo => {
                     const button = document.createElement('button');
-                    button.type = 'button'; // Important: prevent form submission
+                    button.type = 'button';
                     button.value = btnInfo.value;
                     button.textContent = btnInfo.text;
+                    // Add base class and any specific classes
+                    button.classList.add(...baseButtonClasses, ...btnInfo.classes);
                     button.addEventListener('click', handleActionButtonClick);
                     actionButtonsDiv.appendChild(button);
                 });
             }
         }
     }
+
+    // ... (rest of your existing JavaScript: handleActionButtonClick, sendAction, event listeners) ...
 
     // Handles clicks on dynamically generated action buttons
     function handleActionButtonClick(event) {
@@ -513,9 +656,9 @@ input[type="number"]:focus {
         }
 
         try {
-            console.log("Sending request:", url); // Debugging line
+            //console.log("Sending request:", url); // Debugging line
             const response = await fetch(url, { cache: 'no-store' }); // Prevent caching API responses
-             console.log("Received response status:", response.status); // Debugging line
+             //console.log("Received response status:", response.status); // Debugging line
 
             if (!response.ok) {
                 // Try to get error message from response body if possible
@@ -528,7 +671,7 @@ input[type="number"]:focus {
             }
 
             const state = await response.json();
-             console.log("Received state:", state); // Debugging line
+             //console.log("Received state:", state); // Debugging line
             updateUI(state);
 
         } catch (error) {
@@ -543,7 +686,7 @@ input[type="number"]:focus {
 
     // Initial load: Fetch the current game state when the page is ready
     document.addEventListener('DOMContentLoaded', () => {
-         console.log("DOM Loaded, fetching initial state...");
+        // console.log("DOM Loaded, fetching initial state...");
          sendAction('get_state'); // Send a neutral action to just get the current state
     });
 

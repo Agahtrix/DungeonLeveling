@@ -101,7 +101,7 @@ class Being:
                     and (int(map[tuple(new_position)]) in walkable)):
                 self.position = new_position
      
-    def get_dict(self):
+    def get_dict(self, map=None):
         # Return player state as a dictionary
         return {
             "name": self.name,
@@ -111,7 +111,7 @@ class Being:
             "def": self.defense,
             "atk": self.attack_power, 
             "special": self.special_power,
-            "position": self.position,
+            "position": [self.position[0]/float(map.shape[0]),self.position[1]/float(map.shape[1])],
             "facing": self.facing
             # Add other stats here
         }
@@ -233,9 +233,9 @@ class Game:
         
         if  valid_mov:
             for i in range(len(self.enemies)):
-                print(f"\nEnemy{i}:" , self.enemies[i].position)
+                # print(f"\nEnemy{i}:" , self.enemies[i].position)
                 self.enemies[i].move_being(map=self.map, enemies=self.enemies, player=self.player)
-                print(f"\nEnemy{i}:" , self.enemies[i].position)
+                # print(f"\nEnemy{i}:" , self.enemies[i].position)
              
     def enemy_turn(self):
         if not self.current_enemy.is_alive():
@@ -254,8 +254,8 @@ class Game:
         """Returns the current game state as a dictionary suitable for JSON."""
         return {
             "needs_setup": self.player is None,
-            "player": self.player.get_dict() if self.player else None,
-            "enemy": self.current_enemy.get_dict() if self.current_enemy else None,
+            "player": self.player.get_dict(map=self.map) if self.player else None,
+            "enemy": self.current_enemy.get_dict(map=self.map) if self.current_enemy else None,
             "log": self.log[:], # Send a copy of the recent log
             "map_path": self.map_path,
             "game_over": self.game_over,

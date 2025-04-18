@@ -217,7 +217,7 @@
 
     <h2 id="page-title" class="page-title">Carregando...</h2>
 
-    <div id="loading-indicator" class="loading-indicator">Buscando estado do jogo...</div>
+    <div id="loading-indicator" class="hidden"  class="loading-indicator">Buscando estado do jogo...</div>
     <div id="error-message" class="error-message hidden" role="alert"></div>
 
     <section id="character-creation" class="form-section hidden">
@@ -252,7 +252,7 @@
         <section class="map-section">
              <div class="map-header">
                  <h3>Mapa</h3>
-                 <button id="zoom-button" class="btn btn-secondary">🔍 Zoom</button>
+                 <button type="button" id="zoom-button" class="btn btn-secondary">🔍 Zoom</button>
              </div>
              <!-- The container for map/canvas, now centered -->
              <div class="map-area">
@@ -341,6 +341,36 @@
         errorMessage.classList.remove('hidden');
         showLoading(false);
     }
+
+
+    document.addEventListener('keydown', function(event) {
+        // W, A, S, D → movimento
+        // só processa quando não estiver num INPUT (evita sobrescrever digitação)
+        if (['w','a','s','d'].includes(event.key.toLowerCase()) 
+            && document.activeElement.tagName !== 'INPUT') {
+            
+            event.preventDefault();
+
+            // mapeia tecla → value do botão
+            const keyMap = {
+                w: 'f', // up
+                a: 'l', // left
+                s: 'b', // down
+                d: 'r'  // right
+            };
+
+            const btnValue = keyMap[event.key.toLowerCase()];
+            const btn = document.querySelector(
+                `.movement-actions button[value="${btnValue}"]`
+            );
+            if (btn) btn.click();
+        }
+    });
+
+
+
+
+
     function updateUI(state) { /* unchanged */
         currentState = state;
         showLoading(false);
@@ -664,7 +694,7 @@
         if (action) sendAction(action);
     }
     async function sendAction(action, params = {}) { /* unchanged */
-        showLoading(true);
+        // showLoading(true);
         const urlParams = new URLSearchParams();
         urlParams.append('action', action);
         for (const key in params) { urlParams.append(key, params[key]); }
@@ -685,7 +715,7 @@
         } catch (error) {
             console.error("Falha na ação:", action, error);
             showError(`Falha ao comunicar com o servidor: ${error.message}`);
-            showLoading(false);
+            // showLoading(false);
         }
     }
 

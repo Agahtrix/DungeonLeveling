@@ -4,8 +4,8 @@ import numpy as np
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 from socketserver import ThreadingMixIn
 from urllib.parse import urlparse, parse_qs
-
 import json
+
 import json2image as j2i
 
 sides =np.array([[ -1, 0], [ 0, 1] , [ 1, 0] , [ 0, -1]] 
@@ -195,11 +195,11 @@ class Game:
         self.player = Being(player_name if player_name.strip() else "Hero", class_number, start_position, is_player=True)
         self.enemies = create_enemies(self.map, class_number, n_enemies)
         self.game_over = False
-        self.log.append(f"<br>Bem-vindo, {self.player.name}! ")
+        self.log.append(f"\nBem-vindo, {self.player.name}! ")
 
     def process_player_action(self, action):
         if self.game_over:
-            self.log.append("<br>Jogo finalizado. Reinicie para jogar novamente.")
+            self.log.append("\nJogo finalizado. Reinicie para jogar novamente.")
             return
             
         valid_mov = True
@@ -218,17 +218,17 @@ class Game:
             act = "usa habilidade especial" if use_special else "ataca"
             self.log.append(f"{self.player.name} {act} {self.current_enemy.name}! (Roll: {roll}) causou {dmg} de dano.")
             if not self.current_enemy.is_alive():
-                self.log.append(f"<br>*** Vitória! {self.current_enemy.name} foi derrotado. ***")
+                self.log.append(f"\n*** Vitória! {self.current_enemy.name} foi derrotado. ***")
                 #self.enemy = create_enemy(self.map, self.player.cn)
-                #self.log.append(f"<br>Um novo inimigo surge: {self.enemy.name}.")
+                #self.log.append(f"\nUm novo inimigo surge: {self.enemy.name}.")
             else:
                 self.enemy_turn()
         elif action == 't':
             self.log.append(f"{self.player.name} tentou fugir... e conseguiu!")
             #self.enemy = create_enemy(self.map, self.player.cn)
-            #self.log.append(f"<br>Mas um novo inimigo já está à espreita: {self.enemy.name}.")
+            #self.log.append(f"\nMas um novo inimigo já está à espreita: {self.enemy.name}.")
         elif action == 'x':
-            self.log.append("<br>Encerrando o jogo. Até a próxima!")
+            self.log.append("\nEncerrando o jogo. Até a próxima!")
             self.game_over = True
         
         if  valid_mov:
@@ -245,7 +245,7 @@ class Game:
         dmg = self.player.take_damage(damage)
         self.log.append(f"{self.current_enemy.name} ataca {self.player.name}! (Roll: {roll}) causou {dmg} de dano.")
         if not self.player.is_alive():
-            self.log.append(f"<br>--- Game Over: {self.player.name} foi derrotado por {self.current_enemy.name}. ---")
+            self.log.append(f"\n--- Game Over: {self.player.name} foi derrotado por {self.current_enemy.name}. ---")
             self.game_over = True
 
 

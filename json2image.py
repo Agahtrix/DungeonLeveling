@@ -28,6 +28,18 @@ color_map = [
 # --- Fim da Configuração ---
 
 
+def pad_image(img: np.ndarray, n: int, pad_value=0) -> np.ndarray:
+    if img.ndim == 2:
+        # imagem 2D (altura, largura)
+        pad_width = ((n, n), (n, n))
+    elif img.ndim == 3:
+        # imagem 3D (altura, largura, canais)
+        pad_width = ((n, n), (n, n), (0, 0))
+    else:
+        raise ValueError("A imagem deve ter 2 ou 3 dimensões")
+    
+    return np.pad(img, pad_width, mode='constant', constant_values=pad_value)
+
 def grid_numpy(image, rows, cols, cor=(0, 255, 0), espessura=1):
     """
     Aplica um grid a uma imagem de forma eficiente usando NumPy slicing.
@@ -146,6 +158,7 @@ def load_dungeon(json_path, cell_size = 11, return_values = False):
             # Marca essas células como já atribuídas para não sobrescrevê-las em condições subsequentes
             not_processed[cond_mask] = False
             i += 1
+        values = pad_image(values, 4, 0)
         
         
         
@@ -168,8 +181,9 @@ def load_dungeon(json_path, cell_size = 11, return_values = False):
     
     
     # Escalar e Salvar a imagem
-    image = cv2.resize(image, (cols*cell_size, rows*cell_size), interpolation=cv2.INTER_AREA)
-    image = grid_numpy(image, rows, cols, cor=(0, 0, 0), espessura=1)
+    image = pad_image(image, 4, 80)
+    image = cv2.resize(image, ((cols+8)*cell_size, (rows+8)*cell_size), interpolation=cv2.INTER_AREA)
+    image = grid_numpy(image, rows+8, cols+8, cor=(0, 0, 0), espessura=1)
 
 # Calcular o hash MD5 da imagem
     md5_hash = hashlib.md5(image.tobytes()).hexdigest()

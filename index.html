@@ -500,6 +500,11 @@
     // --- MODIFIED: placeIcons ---
     // Places <img> icons on the map image (non-zoomed view)
     function placeIcons(state) {
+        const inScreen = document.getElementById('playerIconOverlay');
+
+        if (inScreen) {
+            inScreen.remove();
+        }
         const mapWidth = mapImage.offsetWidth;
         const mapHeight = mapImage.offsetHeight;
 
@@ -543,107 +548,79 @@
         mapAreaDiv.appendChild(icon); // Append to the map area (which uses block display)
     }
 
-
-    // --- MODIFIED: drawZoomedMap ---
-    // Draws the zoomed view onto the canvas
     function drawZoomedMap(state) {
         const { player } = state;
-        // --- Canvas and Icon Size Configuration ---
-        const viewSize = 100; // MUST match canvas width/height attributes and CSS
-        const zoomedIconSize = 32; // Desired pixel size of the icon ON THE CANVAS
-        // -----------------------------------------
+        const viewSize = 100;              // canvas width/height
+        const zoomedIconSize = 48;         // final on‑screen icon size
 
-        const halfViewSize = viewSize / 2;
+        if (!canvasCtx) {
+            console.error("Canvas context is not available.");
+            return;
+        }
 
-        // Ensure canvas context is available
-         if (!canvasCtx) {
-             console.error("Canvas context is not available.");
-             return;
-         }
-
-        // Clear the canvas first
+        // clear and draw background slice
         canvasCtx.clearRect(0, 0, viewSize, viewSize);
-
-        // Need player position and the original map image loaded to draw
         if (!player || !player.position || !mapImage.naturalWidth || mapImage.naturalWidth === 0) {
-            console.warn("Cannot draw zoomed map: Missing player data or map image not loaded/ready.");
-            // Optionally draw a placeholder on canvas if map isn't ready
+            // placeholder if map isn’t ready
             canvasCtx.fillStyle = 'grey';
             canvasCtx.fillRect(0, 0, viewSize, viewSize);
             canvasCtx.fillStyle = 'white';
             canvasCtx.textAlign = 'center';
-            canvasCtx.fillText('Mapa carregando...', halfViewSize, halfViewSize);
+            canvasCtx.fillText('Mapa carregando...', viewSize/2, viewSize/2);
             return;
         }
 
         const [relY, relX] = player.position;
-        const facing = player.facing;
         const naturalW = mapImage.naturalWidth;
         const naturalH = mapImage.naturalHeight;
         const playerAbsX = relX * naturalW;
         const playerAbsY = relY * naturalH;
 
-        // Calculate source rectangle (sx, sy) top-left corner on the *original* map image
-        let sx = playerAbsX - halfViewSize;
-        let sy = playerAbsY - halfViewSize;
-
-        // --- Edge Clamping Explanation ---
-        // This clamping ensures the VIEWPORT doesn't go beyond the map edges.
-        // The player icon *stays centered* on the canvas. When the calculated sx/sy
-        // hits 0 or the max boundary (naturalW/H - viewSize), the background stops
-        // scrolling, making it *look* like the player stops at the edge. This is expected.
+        let sx = playerAbsX - viewSize/2;
+        let sy = playerAbsY - viewSize/2;
         sx = Math.max(0, Math.min(sx, naturalW - viewSize));
         sy = Math.max(0, Math.min(sy, naturalH - viewSize));
 
-        // Draw the portion of the map image onto the canvas
         try {
-            // --- Image Quality Note ---
-            // The quality depends on the resolution of the source `mapImage`.
-            // Drawing a 200x200 (or 350x350) pixel area from the source onto a
-            // canvas of the same size is a 1:1 copy. If it looks blurry/low-res,
-            // the original map needs higher resolution in that area.
-            // The `image-rendering: pixelated` CSS on the canvas helps prevent blurring.
             canvasCtx.drawImage(
-                mapImage,       // Source image
-                sx, sy,         // Source rect top-left (on original image)
-                viewSize, viewSize, // Source rect width/height
-                0, 0,           // Destination canvas top-left
-                viewSize, viewSize  // Destination canvas width/height
+                mapImage,
+                sx, sy,
+                viewSize, viewSize,
+                0, 0,
+                viewSize, viewSize
             );
         } catch (e) {
             console.error("Error drawing map image onto canvas:", e);
-            // Draw error state on canvas
             canvasCtx.fillStyle = 'red';
             canvasCtx.fillRect(0, 0, viewSize, viewSize);
             canvasCtx.fillStyle = 'white';
             canvasCtx.textAlign = 'center';
-            canvasCtx.fillText('Erro ao desenhar mapa', halfViewSize, halfViewSize);
-            return; // Don't try to draw player if map failed
+            canvasCtx.fillText('Erro ao desenhar mapa', viewSize/2, viewSize/2);
+            return;
         }
 
-        // Draw the player icon centered on the canvas, rotated
-        const halfZoomedIconSize = zoomedIconSize / 2;
-        const rotationRad = (getRotation(facing) * Math.PI) / 180;
+        // — Overlay the player icon as an HTML <img> —
+        // This prevents canvas-pixelation for small icons.
 
-        canvasCtx.save(); // Save state (current transforms, etc.)
-        canvasCtx.translate(halfViewSize, halfViewSize); // Move origin to canvas center
-        canvasCtx.rotate(rotationRad); // Rotate around the center
-
-        try {
-             // --- Icon Size Note ---
-             // The size of the icon here is controlled by `zoomedIconSize`,
-             // NOT by the `.character-icon` CSS rules (which apply to <img> tags).
-            canvasCtx.drawImage(
-                playerIconImg,      // Icon image (preloaded)
-                -halfZoomedIconSize, // Draw starting from top-left relative to rotated center
-                -halfZoomedIconSize,
-                zoomedIconSize,     // Use the defined size for zoomed view
-                zoomedIconSize
-            );
-        } catch (e) {
-             console.error("Error drawing player icon onto canvas:", e);
+        const wrapper = canvasCtx.canvas.parentElement;
+        let overlay = wrapper.querySelector('#playerIconOverlay');
+        if (!overlay) {
+            overlay = document.createElement('img');
+            overlay.id = 'playerIconOverlay';
+            overlay.src = playerIconImg.src;
+            overlay.style.position = 'absolute';
+            overlay.style.pointerEvents = 'none';
+            // ensure parent is relative so absolute overlay centers correctly
+            wrapper.style.position = 'relative';
+            wrapper.appendChild(overlay);
         }
-        canvasCtx.restore(); // Restore state (removes rotation and translation)
+        // size + center + rotate
+        overlay.style.width = `${zoomedIconSize}px`;
+        overlay.style.height = `${zoomedIconSize}px`;
+        overlay.style.left = '50%';
+        overlay.style.top = '50%';
+        const rotationDeg = getRotation(player.facing);
+        overlay.style.transform = `translate(0%, 0%) rotate(${rotationDeg}deg)`;
     }
 
 
@@ -660,6 +637,8 @@
             logContentDiv.innerHTML = '<i>Nenhum histórico para exibir.</i>';
         }
     }
+
+
     function renderActionButtons(enemy, isGameOver) { /* unchanged */
         actionButtonsContainer.innerHTML = '';
 
@@ -693,6 +672,8 @@
         const action = event.target.value;
         if (action) sendAction(action);
     }
+
+
     async function sendAction(action, params = {}) { /* unchanged */
         // showLoading(true);
         const urlParams = new URLSearchParams();

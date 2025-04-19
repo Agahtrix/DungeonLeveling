@@ -14,7 +14,7 @@ sides =np.array([[ -1, 0], [ 0, 1] , [ 1, 0] , [ 0, -1]]
 
 places = ['f', 'r', 'b', 'l' ] 
               # N, L, S, O
-walkable = [1,7,8] # door, corridor, room
+walkable = [1,6,7,8] # door, corridor, room
 
 
 json_filename = "cave.json" 

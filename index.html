@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Dungeon Leveling</title>
+    <style>
+        /* CSS Variables (unchanged) */
+        :root {
+            --bg-color-main: #1a1a1a;
+            --bg-color-container: #2d2d2d;
+            --bg-color-section: #333;
+            --bg-color-input: #444;
+            --bg-color-log: #252525;
+            --text-color-light: #e0e0e0;
+            --text-color-medium: #ccc;
+            --text-color-dark: #1a1a1a;
+            --border-color: #555;
+            --border-color-light: #444;
+            --accent-color-primary: #00aeff; /* Title, highlights */
+            --accent-color-secondary: #bb86fc; /* Section titles */
+            --accent-color-action: #03dac6; /* Action buttons */
+            --accent-color-action-hover: #01bfaa;
+            --color-error: #cf6679;
+            --color-success: #66bb6a;
+            --color-danger: #dc3545;
+            --color-danger-hover: #a71d2a;
+            --color-primary-btn: #007bff;
+            --color-primary-btn-hover: #0056b3;
+            --border-radius-small: 4px;
+            --border-radius-medium: 6px;
+            --border-radius-large: 10px;
+            --spacing-small: 5px;
+            --spacing-medium: 10px;
+            --spacing-large: 15px;
+            --spacing-xlarge: 20px;
+            --font-size-base: 1rem;
+            --font-size-small: 0.9rem;
+            --font-size-large: 1.1rem;
+            --font-size-h2: 1.8rem;
+            --font-size-h3: 1.2rem;
+            --transition-speed: 0.2s;
+        }
+
+        /* Basic Reset & Defaults (unchanged) */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { font-size: 100%; }
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: var(--spacing-large);
+            background-color: var(--bg-color-main);
+            color: var(--text-color-light);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        /* Container (unchanged) */
+        .container {
+            width: 100%;
+            max-width: 700px;
+            margin: 0 auto;
+            background: var(--bg-color-container);
+            padding: var(--spacing-large) var(--spacing-xlarge);
+            border-radius: var(--border-radius-large);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Headings and Text (unchanged) */
+        .page-title { text-align: center; margin-bottom: var(--spacing-xlarge); color: var(--accent-color-primary); font-size: var(--font-size-h2); }
+        h3 { font-size: var(--font-size-h3); margin-top: 0; margin-bottom: var(--spacing-medium); color: var(--accent-color-secondary); border-bottom: 1px solid var(--border-color-light); padding-bottom: var(--spacing-small); }
+
+        /* Messages (unchanged) */
+        .loading-indicator, .error-message, .game-over-message { text-align: center; padding: var(--spacing-medium); margin-bottom: var(--spacing-large); border-radius: var(--border-radius-small); transition: opacity var(--transition-speed) ease-in-out; }
+        .loading-indicator { font-style: italic; color: var(--text-color-medium); }
+        .error-message { color: var(--color-error); font-weight: bold; background-color: rgba(207, 102, 121, 0.1); border-left: 3px solid var(--color-error); text-align: left; }
+        .game-over-message { font-weight: bold; color: var(--color-error); font-size: 1.5rem; background-color: rgba(45, 45, 45, 0.8); }
+
+        /* Forms & Inputs (unchanged) */
+        .form-section { margin-bottom: var(--spacing-xlarge); padding: var(--spacing-large); background-color: var(--bg-color-section); border-radius: var(--border-radius-medium); }
+        #character-creation { background-color: #383838; }
+        .form-group { margin-bottom: var(--spacing-large); }
+        .form-group label { display: block; margin-bottom: var(--spacing-small); font-weight: bold; color: var(--text-color-medium); }
+        input[type="text"], input[type="number"] { width: 100%; padding: var(--spacing-medium); border: 1px solid var(--border-color); background-color: var(--bg-color-input); color: var(--text-color-light); border-radius: var(--border-radius-small); font-size: var(--font-size-base); }
+        input[type="text"]:focus, input[type="number"]:focus { outline: none; border-color: var(--accent-color-primary); box-shadow: 0 0 5px rgba(0, 174, 255, 0.5); }
+
+        /* Buttons (unchanged) */
+        .btn { display: inline-block; padding: var(--spacing-medium) var(--spacing-large); margin: var(--spacing-small); font-size: var(--font-size-base); font-weight: bold; cursor: pointer; border: none; border-radius: var(--border-radius-small); text-align: center; transition: background-color var(--transition-speed) ease, transform var(--transition-speed) ease; color: var(--text-color-light); }
+        .btn:hover { opacity: 0.9; }
+        .btn:active { transform: scale(0.98); }
+        .btn-primary { background-color: var(--color-primary-btn); }
+        .btn-primary:hover { background-color: var(--color-primary-btn-hover); }
+        .btn-danger { background-color: var(--color-danger); }
+        .btn-danger:hover { background-color: var(--color-danger-hover); }
+        .btn-action { background-color: var(--accent-color-action); color: var(--text-color-dark); }
+        .btn-action:hover { background-color: var(--accent-color-action-hover); }
+        .btn-secondary { background-color: var(--bg-color-input); color: var(--text-color-light); border: 1px solid var(--border-color); }
+        .btn-secondary:hover { background-color: var(--border-color); }
+        #start-form button[type="submit"], #restart-button { width: calc(100% - var(--spacing-medium)); margin: var(--spacing-medium) var(--spacing-small) 0 var(--spacing-small); }
+        #restart-button { margin-top: var(--spacing-large); }
+
+        /* Game Status Layout (unchanged) */
+        .stats-area { display: flex; flex-wrap: wrap; gap: var(--spacing-xlarge); margin-bottom: var(--spacing-xlarge); }
+        .stats-section { flex: 1; min-width: 220px; background-color: var(--bg-color-section); padding: var(--spacing-large); border-radius: var(--border-radius-medium); }
+        .stats-content { line-height: 1.8; }
+        .stats-content span { display: block; margin-bottom: var(--spacing-small); }
+        .stats-content strong { color: var(--accent-color-primary); min-width: 70px; display: inline-block; }
+
+        /* --- Map Area Styles --- */
+        .map-section {
+            margin-bottom: var(--spacing-xlarge);
+            background: var(--bg-color-section);
+            padding: var(--spacing-large);
+            border-radius: var(--border-radius-medium);
+        }
+        .map-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-medium);
+        }
+        .map-header h3 { margin-bottom: 0; border-bottom: none; }
+        #zoom-button { padding: var(--spacing-small) var(--spacing-medium); font-size: var(--font-size-small); }
+
+        /* --- MODIFIED: .map-area --- */
+        .map-area {
+            position: relative; /* Needed for absolute positioning of icons */
+            display: block; /* Allows margin: auto and correct icon origin */
+            margin: 0 auto; /* Center the block element horizontally */
+            width: fit-content; /* Make container width match the image width */
+            max-width: 100%; /* Prevent overflow if image is wider than container */
+            background-color: var(--bg-color-input);
+            border-radius: var(--border-radius-small);
+            overflow: hidden; /* Clip icons if they go outside */
+            min-height: 200px; /* Ensure area has height */
+            border: 1px solid var(--border-color);
+            transform-origin: top left; /* Ensure transforms originate correctly */
+            transition: transform 0.3s ease; /* Smooth panning transition */
+        }
+
+        #map-image, #map-canvas {
+            display: block; /* Remove extra space below image/canvas */
+            max-width: 100%; /* Ensure image scales down if needed */
+            height: auto;    /* Maintain aspect ratio for image */
+            transition: opacity var(--transition-speed) ease-in-out;
+            
+        }
+
+        /* --- MODIFIED: #map-canvas --- */
+        #map-canvas {
+            /* display: block; /* Already set above */
+            /* Define fixed size for canvas */
+            width: 400px; /* Match the HTML attribute */
+            height: 400px; /* Match the HTML attribute */
+            /* Sharpen pixel art on zoom */
+
+            image-rendering: -webkit-optimize-contrast; /* Possibly future standard */
+            image-rendering: pixelated; /* Standard */
+        }
+
+        /* --- MODIFIED: .character-icon --- */
+        .character-icon {
+            position: absolute;
+            /* Size for the NON-ZOOMED view (using <img> tags) */
+            width: 24px;
+            height: 24px;
+            /* transform-origin: center center; */
+            /* Improves rendering for pixel art if char.png is low-res */
+            image-rendering: pixelated; /* Or auto */
+            pointer-events: none;
+            transition: top var(--transition-speed) ease, left var(--transition-speed) ease, transform var(--transition-speed) ease;
+        }
+
+        .enemy-icon {
+            filter: hue-rotate(180deg) brightness(1.1); /* Example: make enemy red-ish */
+        }
+
+        /* Separator (unchanged) */
+        .separator { border: 0; height: 1px; background: var(--border-color-light); margin: var(--spacing-xlarge) 0; }
+
+        /* Log Area (unchanged) */
+        .log-section { margin-bottom: var(--spacing-xlarge); }
+        #log-content { max-height: 250px; overflow-y: auto; border: 1px solid var(--border-color-light); padding: var(--spacing-medium); background: var(--bg-color-log); border-radius: var(--border-radius-medium); font-size: var(--font-size-small); line-height: 1.5; color: var(--text-color-medium); scroll-behavior: smooth; }
+        #log-content::-webkit-scrollbar { width: 8px; }
+        #log-content::-webkit-scrollbar-track { background: var(--bg-color-section); border-radius: 4px; }
+        #log-content::-webkit-scrollbar-thumb { background-color: var(--border-color); border-radius: 4px; border: 2px solid var(--bg-color-section); }
+
+        /* Action Buttons Area (unchanged) */
+        .action-buttons-section { margin-bottom: var(--spacing-xlarge); }
+        .action-buttons-container { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--spacing-medium); }
+        .action-buttons-container .btn { flex-grow: 1; min-width: 80px; }
+        .action-buttons-container.movement-actions .btn { max-width: calc(25% - var(--spacing-medium)); min-width: 60px; }
+        .action-buttons-container.combat-actions .btn { max-width: calc(33% - var(--spacing-medium)); min-width: 100px; }
+
+        /* Utility & Responsive (unchanged) */
+        .hidden { display: none !important; }
+        @media (max-width: 600px) {
+            body { padding: var(--spacing-medium); }
+            .container { padding: var(--spacing-medium); }
+            .page-title { font-size: 1.6rem; }
+            h3 { font-size: var(--font-size-large); }
+            .stats-area { flex-direction: column; gap: var(--spacing-large); }
+            .stats-section { min-width: 100%; }
+            .action-buttons-container .btn { max-width: calc(50% - var(--spacing-medium)); min-width: 100px; }
+            .action-buttons-container.movement-actions .btn { font-size: 1.2rem; }
+            /* Adjust canvas size for mobile if needed */
+            #map-canvas { width: 250px; height: 250px; }
+        }
+
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <h2 id="page-title" class="page-title">Carregando...</h2>
+
+    <div id="loading-indicator" class="hidden"  class="loading-indicator">Buscando estado do jogo...</div>
+    <div id="error-message" class="error-message hidden" role="alert"></div>
+
+    <section id="character-creation" class="form-section hidden">
+        <h3>Criar Personagem</h3>
+        <form id="start-form">
+            <div class="form-group">
+                <label for="player-name">Nome:</label>
+                <input type="text" id="player-name" name="name" placeholder="Seu nome" required>
+            </div>
+            <div class="form-group">
+                <label for="player-class">Classe (1-8):</label>
+                <input type="number" id="player-class" name="class" min="1" max="8" value="1" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Iniciar Jogo</button>
+        </form>
+    </section>
+
+    <section id="game-status" class="hidden">
+
+        <div class="stats-area">
+            <section id="player-section" class="stats-section">
+                <h3>Jogador</h3>
+                <div id="player-stats" class="stats-content" aria-live="polite">Carregando...</div>
+            </section>
+
+            <section id="enemy-section" class="stats-section hidden">
+                <h3>Inimigo</h3>
+                <div id="enemy-stats" class="stats-content" aria-live="polite"></div>
+            </section>
+        </div>
+
+        <section class="map-section">
+             <div class="map-header">
+                 <h3>Mapa</h3>
+                 <button type="button" id="zoom-button" class="btn btn-secondary">🔍 Zoom</button>
+             </div>
+             <!-- The container for map/canvas, now centered -->
+             <div class="map-area">
+                 <img id="map-image" src="" alt="Mapa do jogo (Carregando...)">
+                 <!-- MODIFIED: Canvas size -->
+                 <canvas id="map-canvas" width="100" height="100" class="hidden"></canvas>
+             </div>
+          </section>
+
+        <hr class="separator">
+
+        <section class="log-section">
+            <h3>Histórico</h3>
+            <div id="log-content" aria-live="polite">Carregando...</div>
+        </section>
+
+        <section id="action-buttons-section" class="action-buttons-section">
+            <h3>Ações</h3>
+             <div id="action-buttons-container" class="action-buttons-container">
+                 </div>
+        </section>
+
+        <div id="game-over-message" class="game-over-message hidden">
+            GAME OVER
+        </div>
+        <button id="restart-button" class="btn btn-danger">Reiniciar Jogo</button>
+
+    </section>
+</div>
+
+<script>
+    // --- DOM Elements (unchanged) ---
+    const pageTitle = document.getElementById('page-title');
+    const loadingIndicator = document.getElementById('loading-indicator');
+    const errorMessage = document.getElementById('error-message');
+    const characterCreationDiv = document.getElementById('character-creation');
+    const gameStatusDiv = document.getElementById('game-status');
+    const startForm = document.getElementById('start-form');
+    const playerNameInput = document.getElementById('player-name');
+    const playerClassInput = document.getElementById('player-class');
+    const playerSectionDiv = document.getElementById('player-section');
+    const playerStatsDiv = document.getElementById('player-stats');
+    const enemySectionDiv = document.getElementById('enemy-section');
+    const enemyStatsDiv = document.getElementById('enemy-stats');
+    const mapSectionDiv = document.querySelector('.map-section');
+    const mapAreaDiv = document.querySelector('.map-area');
+    const mapImage = document.getElementById('map-image');
+    const mapCanvas = document.getElementById('map-canvas');
+    const canvasCtx = mapCanvas.getContext('2d');
+    const zoomButton = document.getElementById('zoom-button');
+    const logContentDiv = document.getElementById('log-content');
+    const actionButtonsContainer = document.getElementById('action-buttons-container');
+    const actionButtonsSection = document.getElementById('action-buttons-section');
+    const restartButton = document.getElementById('restart-button');
+    const gameOverMessage = document.getElementById('game-over-message');
+
+    // --- Global Variables (unchanged) ---
+    const API_URL = '/api/game_state';
+    let currentState = null;
+    let zoomActive = false;
+    let playerIconImg = null;
+    let enemyIconImg = null;
+
+    // --- Initialization (unchanged) ---
+    document.addEventListener('DOMContentLoaded', () => {
+        playerIconImg = new Image();
+        playerIconImg.src = './char.png'; // Ensure this path is correct
+        enemyIconImg = new Image();
+        enemyIconImg.src = './char.png';
+
+        startForm.addEventListener('submit', handleStartGame);
+        restartButton.addEventListener('click', handleRestartGame);
+        zoomButton.addEventListener('click', handleZoomToggle);
+
+        sendAction('get_state');
+    });
+
+    // --- UI Update Functions (unchanged except renderMap, drawZoomedMap) ---
+
+    function showLoading(isLoading) { /* unchanged */
+        loadingIndicator.classList.toggle('hidden', !isLoading);
+        if (isLoading) errorMessage.classList.add('hidden');
+    }
+    function showError(message) { /* unchanged */
+        errorMessage.textContent = `Erro: ${message}`;
+        errorMessage.classList.remove('hidden');
+        showLoading(false);
+    }
+
+
+    document.addEventListener('keydown', function(event) {
+        // W, A, S, D → movimento
+        // só processa quando não estiver num INPUT (evita sobrescrever digitação)
+        if (['w','a','s','d'].includes(event.key.toLowerCase()) 
+            && document.activeElement.tagName !== 'INPUT') {
+            
+            event.preventDefault();
+
+            // mapeia tecla → value do botão
+            const keyMap = {
+                w: 'f', // up
+                a: 'l', // left
+                s: 'b', // down
+                d: 'r'  // right
+            };
+
+            const btnValue = keyMap[event.key.toLowerCase()];
+            const btn = document.querySelector(
+                `.movement-actions button[value="${btnValue}"]`
+            );
+            if (btn) btn.click();
+        }
+    });
+
+
+
+
+
+    function updateUI(state) { /* unchanged */
+        currentState = state;
+        showLoading(false);
+        errorMessage.classList.add('hidden');
+
+        if (!state) {
+            showError('Recebido estado inválido do servidor.');
+            return;
+        }
+
+        if (state.needs_setup) {
+            pageTitle.textContent = 'Novo Jogo - Dungeon Leveling';
+            characterCreationDiv.classList.remove('hidden');
+            gameStatusDiv.classList.add('hidden');
+        } else {
+            pageTitle.textContent = 'Status do Jogo - Dungeon Leveling';
+            characterCreationDiv.classList.add('hidden');
+            gameStatusDiv.classList.remove('hidden');
+
+            renderPlayerStats(state.player);
+            renderEnemyStats(state.enemy);
+            renderMap(state); // Calls updated renderMap
+            renderLog(state.log);
+            renderActionButtons(state.enemy, state.game_over);
+
+            gameOverMessage.classList.toggle('hidden', !state.game_over);
+            actionButtonsSection.classList.toggle('hidden', state.game_over);
+        }
+    }
+    function renderPlayerStats(player) { /* unchanged */
+        if (player) {
+            playerStatsDiv.innerHTML = `
+                <span><strong>Nome:</strong> ${player.name || 'N/A'}</span>
+                <span><strong>HP:</strong> ${player.hp ?? 'N/A'} / ${player.max_hp ?? 'N/A'}</span>
+                <span><strong>Classe:</strong> ${player.class_number ?? 'N/A'}</span>
+                <span><strong>Defesa:</strong> ${player.def ?? 'N/A'}</span>
+                <span><strong>Ataque:</strong> ${player.atk ?? 'N/A'}</span>
+                <span><strong>Especial:</strong> ${player.special ?? 'N/A'}</span>`;
+            playerSectionDiv.classList.remove('hidden');
+        } else {
+            playerStatsDiv.textContent = 'Dados do jogador indisponíveis.';
+        }
+    }
+    function renderEnemyStats(enemy) { /* unchanged */
+        if (enemy) {
+            enemyStatsDiv.innerHTML = `
+                <span><strong>Nome:</strong> ${enemy.name || 'N/A'}</span>
+                <span><strong>HP:</strong> ${enemy.hp ?? 'N/A'} / ${enemy.max_hp ?? 'N/A'}</span>
+                <span><strong>Classe:</strong> ${enemy.class_number ?? 'N/A'}</span>
+                <span><strong>Defesa:</strong> ${enemy.def ?? 'N/A'}</span>
+                <span><strong>Ataque:</strong> ${enemy.atk ?? 'N/A'}</span>
+                <span><strong>Especial:</strong> ${enemy.special ?? 'N/A'}</span>`;
+            enemySectionDiv.classList.remove('hidden');
+        } else {
+            enemyStatsDiv.innerHTML = '';
+            enemySectionDiv.classList.add('hidden');
+        }
+    }
+
+    // --- MODIFIED: renderMap ---
+    // Handles showing/hiding image vs canvas and triggering updates
+    function renderMap(state) {
+        // Clear previous character icons (from non-zoomed view)
+        mapAreaDiv.querySelectorAll('.character-icon').forEach(icon => icon.remove());
+
+        // Set visibility based on zoom BEFORE loading image or drawing canvas
+        mapImage.classList.toggle('hidden', zoomActive);
+        mapCanvas.classList.toggle('hidden', !zoomActive);
+
+        // Define the map update logic inside a function
+        const updateMapVisuals = () => {
+            // Clear icons again (safety check)
+            mapAreaDiv.querySelectorAll('.character-icon').forEach(icon => icon.remove());
+
+            if (zoomActive) {
+                // Ensure canvas is visible, draw zoomed content
+                mapImage.classList.add('hidden'); // Ensure hidden
+                mapCanvas.classList.remove('hidden'); // Ensure visible
+                drawZoomedMap(state); // Call the updated drawing function
+            } else {
+                // Ensure image is visible, place icons on it
+                mapImage.classList.remove('hidden'); // Ensure visible
+                mapCanvas.classList.add('hidden'); // Ensure hidden
+                // Place icons only if image has rendered dimensions
+                if (mapImage.offsetWidth > 0 && mapImage.offsetHeight > 0) {
+                    placeIcons(state); // Place <img> icons
+                } else {
+                    // If dimensions are 0, wait for layout (usually handled by onload)
+                    console.warn("Map image dimensions not ready for icon placement yet.");
+                }
+            }
+        };
+
+        // Set up image loading handlers
+        mapImage.onload = updateMapVisuals; // Call visuals update when image loads/reloads
+        mapImage.onerror = () => {
+            console.error('Falha ao carregar a imagem do mapa:', mapImage.src);
+            mapImage.alt = 'Falha ao carregar mapa';
+            mapAreaDiv.querySelectorAll('.character-icon').forEach(icon => icon.remove());
+            mapSectionDiv.classList.add('hidden'); // Hide section on critical error
+        };
+
+        // Determine map source and trigger update
+        const newMapPath = state.map_path || '';
+        mapSectionDiv.classList.remove('hidden'); // Ensure section is visible
+
+        if (!newMapPath) {
+            mapImage.src = '';
+            mapImage.alt = 'Mapa indisponível';
+            mapCanvas.classList.add('hidden');
+            mapImage.classList.remove('hidden'); // Show empty image element
+            mapAreaDiv.querySelectorAll('.character-icon').forEach(icon => icon.remove());
+        } else {
+            const fullPath = window.location.origin + (newMapPath.startsWith('/') ? '' : '/') + newMapPath;
+             // Only change src if it's actually different OR if the image failed before
+            if (mapImage.src !== fullPath || !mapImage.complete || mapImage.naturalWidth === 0) {
+                mapImage.src = newMapPath; // Setting src triggers onload
+                mapImage.alt = 'Mapa do jogo';
+            } else {
+                // If src is the same AND image is loaded, manually update visuals
+                // (e.g., when toggling zoom without changing map)
+                updateMapVisuals();
+            }
+        }
+    }
+
+    // --- MODIFIED: placeIcons ---
+    // Places <img> icons on the map image (non-zoomed view)
+    function placeIcons(state) {
+        const inScreen = document.getElementById('playerIconOverlay');
+
+        if (inScreen) {
+            inScreen.remove();
+        }
+        const mapWidth = mapImage.offsetWidth;
+        const mapHeight = mapImage.offsetHeight;
+
+        if (mapWidth <= 0 || mapHeight <= 0) {
+            console.warn(`Cannot place icons: Invalid map dimensions (${mapWidth}x${mapHeight})`);
+            return;
+        }
+
+        // Place Player Icon
+        if (state.player && state.player.position) {
+            const [relY, relX] = state.player.position;
+            const y = relY * mapHeight;
+            const x = relX * mapWidth;
+            // createIconElement now takes the preloaded image directly
+            createIconElement(playerIconImg, 'Jogador', ['player-icon'], state.player.facing, x, y);
+        }
+
+        // Place Enemy Icon
+        if (state.enemy && state.enemy.position) {
+            const [relY, relX] = state.enemy.position;
+            const y = relY * mapHeight;
+            const x = relX * mapWidth;
+            createIconElement(enemyIconImg, 'Inimigo', ['enemy-icon'], state.enemy.facing, x, y);
+        }
+    }
+
+    // --- MODIFIED: createIconElement ---
+    // Creates an <img> element for icons in non-zoomed view
+    function createIconElement(imgElement, altText, classes, facing, x, y) {
+        const icon = imgElement.cloneNode(); // Use preloaded image data
+        icon.alt = altText;
+        icon.classList.add('character-icon', ...classes); // Apply base and specific classes
+        const rotation = getRotation(facing);
+
+        // Center the icon on the coordinates (x, y) using transform
+        icon.style.left = `${x}px`;
+        icon.style.top = `${y}px`;
+        // Translate by -50% of the icon's OWN width/height to center it
+        icon.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
+
+        mapAreaDiv.appendChild(icon); // Append to the map area (which uses block display)
+    }
+
+    function drawZoomedMap(state) {
+        const { player } = state;
+        const viewSize = 100;              // canvas width/height
+        const zoomedIconSize = 48;         // final on‑screen icon size
+
+        if (!canvasCtx) {
+            console.error("Canvas context is not available.");
+            return;
+        }
+
+        // clear and draw background slice
+        canvasCtx.clearRect(0, 0, viewSize, viewSize);
+        if (!player || !player.position || !mapImage.naturalWidth || mapImage.naturalWidth === 0) {
+            // placeholder if map isn’t ready
+            canvasCtx.fillStyle = 'grey';
+            canvasCtx.fillRect(0, 0, viewSize, viewSize);
+            canvasCtx.fillStyle = 'white';
+            canvasCtx.textAlign = 'center';
+            canvasCtx.fillText('Mapa carregando...', viewSize/2, viewSize/2);
+            return;
+        }
+
+        const [relY, relX] = player.position;
+        const naturalW = mapImage.naturalWidth;
+        const naturalH = mapImage.naturalHeight;
+        const playerAbsX = relX * naturalW;
+        const playerAbsY = relY * naturalH;
+
+        let sx = playerAbsX - viewSize/2;
+        let sy = playerAbsY - viewSize/2;
+        sx = Math.max(0, Math.min(sx, naturalW - viewSize));
+        sy = Math.max(0, Math.min(sy, naturalH - viewSize));
+
+        try {
+            canvasCtx.drawImage(
+                mapImage,
+                sx, sy,
+                viewSize, viewSize,
+                0, 0,
+                viewSize, viewSize
+            );
+        } catch (e) {
+            console.error("Error drawing map image onto canvas:", e);
+            canvasCtx.fillStyle = 'red';
+            canvasCtx.fillRect(0, 0, viewSize, viewSize);
+            canvasCtx.fillStyle = 'white';
+            canvasCtx.textAlign = 'center';
+            canvasCtx.fillText('Erro ao desenhar mapa', viewSize/2, viewSize/2);
+            return;
+        }
+
+        // — Overlay the player icon as an HTML <img> —
+        // This prevents canvas-pixelation for small icons.
+
+        const wrapper = canvasCtx.canvas.parentElement;
+        let overlay = wrapper.querySelector('#playerIconOverlay');
+        if (!overlay) {
+            overlay = document.createElement('img');
+            overlay.id = 'playerIconOverlay';
+            overlay.src = playerIconImg.src;
+            overlay.style.position = 'absolute';
+            overlay.style.pointerEvents = 'none';
+            // ensure parent is relative so absolute overlay centers correctly
+            wrapper.style.position = 'relative';
+            wrapper.appendChild(overlay);
+        }
+        // size + center + rotate
+        overlay.style.width = `${zoomedIconSize}px`;
+        overlay.style.height = `${zoomedIconSize}px`;
+        overlay.style.left = '50%';
+        overlay.style.top = '50%';
+        const rotationDeg = getRotation(player.facing);
+        overlay.style.transform = `translate(0%, 0%) rotate(${rotationDeg}deg)`;
+    }
+
+
+    function renderLog(logEntries) { /* unchanged */
+        logContentDiv.innerHTML = '';
+        if (logEntries && logEntries.length > 0) {
+            logEntries.forEach(entry => {
+                const p = document.createElement('p');
+                p.textContent = entry;
+                logContentDiv.appendChild(p);
+            });
+            logContentDiv.scrollTop = logContentDiv.scrollHeight;
+        } else {
+            logContentDiv.innerHTML = '<i>Nenhum histórico para exibir.</i>';
+        }
+    }
+
+
+    function renderActionButtons(enemy, isGameOver) { /* unchanged */
+        actionButtonsContainer.innerHTML = '';
+
+        if (isGameOver) {
+            actionButtonsSection.classList.add('hidden');
+            return;
+        }
+        actionButtonsSection.classList.remove('hidden');
+
+        const isCombat = Boolean(enemy);
+        actionButtonsContainer.className = 'action-buttons-container';
+        actionButtonsContainer.classList.add(isCombat ? 'combat-actions' : 'movement-actions');
+
+        const buttons = isCombat
+            ? [ { value: 'a', text: '⚔️ Atacar', classes: ['btn-danger'] }, { value: 's', text: '✨ Habilidade', classes: ['btn-primary'] }, { value: 't', text: '🏃 Fugir', classes: ['btn-secondary'] } ]
+            : [ { value: 'l', text: '⬅️', classes: ['btn-action'] }, { value: 'f', text: '⬆️', classes: ['btn-action'] }, { value: 'b', text: '⬇️', classes: ['btn-action'] }, { value: 'r', text: '➡️', classes: ['btn-action'] } ];
+
+        buttons.forEach(info => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.value = info.value;
+            btn.textContent = info.text;
+            btn.classList.add('btn', ...info.classes);
+            btn.addEventListener('click', handleActionButtonClick);
+            actionButtonsContainer.appendChild(btn);
+        });
+    }
+
+    // --- Action Handling (unchanged) ---
+    function handleActionButtonClick(event) { /* unchanged */
+        const action = event.target.value;
+        if (action) sendAction(action);
+    }
+
+
+    async function sendAction(action, params = {}) { /* unchanged */
+        // showLoading(true);
+        const urlParams = new URLSearchParams();
+        urlParams.append('action', action);
+        for (const key in params) { urlParams.append(key, params[key]); }
+        const url = `${API_URL}?${urlParams.toString()}`;
+
+        try {
+            const response = await fetch(url, { cache: 'no-store' });
+            if (!response.ok) {
+                let errorText = `Erro na requisição: ${response.status} ${response.statusText}`;
+                try {
+                    const errorData = await response.json();
+                    if (errorData && errorData.error) errorText = errorData.error;
+                } catch (e) { /* Ignore non-JSON errors */ }
+                throw new Error(errorText);
+            }
+            const state = await response.json();
+            updateUI(state);
+        } catch (error) {
+            console.error("Falha na ação:", action, error);
+            showError(`Falha ao comunicar com o servidor: ${error.message}`);
+            // showLoading(false);
+        }
+    }
+
+    // --- Event Handlers (unchanged except handleZoomToggle) ---
+    function handleStartGame(event) { /* unchanged */
+        event.preventDefault();
+        const name = playerNameInput.value.trim();
+        const classNumber = playerClassInput.value;
+        if (name && classNumber) {
+            sendAction('start', { name: name, class: classNumber });
+        } else {
+            showError("Por favor, preencha o nome e a classe.");
+        }
+    }
+    function handleRestartGame() { /* unchanged */
+        if (confirm("Tem certeza que deseja reiniciar o jogo? Todo o progresso será perdido.")) {
+            sendAction('restart');
+        }
+    }
+
+    // --- MODIFIED: handleZoomToggle ---
+    function handleZoomToggle() {
+        zoomActive = !zoomActive;
+        zoomButton.textContent = zoomActive ? '🔎 Unzoom' : '🔍 Zoom';
+        // Re-render the map using the *current* state data but with the new zoom setting
+        if (currentState) {
+            // Directly call renderMap, which now handles switching
+            // between image+icons and canvas drawing based on zoomActive
+            renderMap(currentState);
+        }
+    }
+
+    // --- Utility Functions (unchanged) ---
+    function getRotation(facing = 'b') { /* unchanged */
+        switch (facing) {
+            case 'f': return 180; case 'r': return -90; case 'l': return 90; case 'b': return 0; default: return 0;
+        }
+    }
+
+</script>
+
+</body>
+</html>

@@ -82,6 +82,27 @@
         /* Forms & Inputs (unchanged) */
         .form-section { margin-bottom: var(--spacing-xlarge); padding: var(--spacing-large); background-color: var(--bg-color-section); border-radius: var(--border-radius-medium); }
         #character-creation { background-color: #383838; }
+        .character-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        .char-thumb {
+            width: 64px;
+            height: 64px;
+            object-fit: contain;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: border-color 0.2s;
+        }
+        .char-thumb:hover {
+            border-color: #aaa;
+        }
+        .char-thumb.selected {
+            border-color: #007bff;
+        }
+
         .form-group { margin-bottom: var(--spacing-large); }
         .form-group label { display: block; margin-bottom: var(--spacing-small); font-weight: bold; color: var(--text-color-medium); }
         input[type="text"], input[type="number"] { width: 100%; padding: var(--spacing-medium); border: 1px solid var(--border-color); background-color: var(--bg-color-input); color: var(--text-color-light); border-radius: var(--border-radius-small); font-size: var(--font-size-base); }
@@ -206,8 +227,7 @@
             .stats-section { min-width: 100%; }
             .action-buttons-container .btn { max-width: calc(50% - var(--spacing-medium)); min-width: 100px; }
             .action-buttons-container.movement-actions .btn { font-size: 1.2rem; }
-            /* Adjust canvas size for mobile if needed */
-            #map-canvas { width: 250px; height: 250px; }
+
         }
 
     </style>
@@ -221,18 +241,25 @@
     <div id="error-message" class="error-message hidden" role="alert"></div>
 
     <section id="character-creation" class="form-section hidden">
+
         <h3>Criar Personagem</h3>
+        
         <form id="start-form">
-            <div class="form-group">
-                <label for="player-name">Nome:</label>
-                <input type="text" id="player-name" name="name" placeholder="Seu nome" required>
-            </div>
-            <div class="form-group">
-                <label for="player-class">Classe (1-8):</label>
-                <input type="number" id="player-class" name="class" min="1" max="8" value="1" required>
-            </div>
-            <button type="submit" class="btn btn-primary">Iniciar Jogo</button>
+        <div class="form-group">
+        <label for="player-name">Nome:</label>
+        <input type="text" id="player-name" name="name" placeholder="Seu nome" required>
+        </div>
+        
+        <div class="form-group">
+        <label for="player-class">Classe (1-8):</label>
+        <input type="number" id="player-class" name="class" min="1" max="8" value="1" required>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">Iniciar Jogo</button>
         </form>
+
+        <div id="character-list" class="character-list"></div>
+        
     </section>
 
     <section id="game-status" class="hidden">
@@ -313,22 +340,76 @@
     const API_URL = '/api/game_state';
     let currentState = null;
     let zoomActive = false;
-    let playerIconImg = null;
-    let enemyIconImg = null;
+    let playerIconImg = new Image();
+    let enemyIconImg = new Image();
+    document.addEventListener('DOMContentLoaded', async () => {
+        // grab the elements you actually rendered:
+        const list           = document.getElementById('character-list');
 
-    // --- Initialization (unchanged) ---
-    document.addEventListener('DOMContentLoaded', () => {
-        playerIconImg = new Image();
-        playerIconImg.src = './char.png'; // Ensure this path is correct
-        enemyIconImg = new Image();
-        enemyIconImg.src = './char.png';
 
-        startForm.addEventListener('submit', handleStartGame);
+        // try to restore last-picked char
+        let char = localStorage.getItem('selectedChar');
+
+        // 1) load character thumbnails
+        try {
+            const res  = await fetch('./Characters/');
+            const text = await res.text();
+            const doc  = new DOMParser().parseFromString(text, 'text/html');
+
+            const files = Array.from(doc.querySelectorAll('a'))
+            .map(a => a.getAttribute('href'))
+            .filter(h => /\.png$/i.test(h));
+
+            files.forEach(file => {
+            const img = document.createElement('img');
+            img.src       = `./Characters/${file}`;
+            img.alt       = file;
+            img.className = 'char-thumb';
+            
+            // if this matches our restored selection, mark it now:
+            if (file === char) {
+                img.classList.add('selected');
+                playerIconImg.src = img.src;
+            }
+
+            img.addEventListener('click', () => {
+                // deselect everything, select this one
+                document.querySelectorAll('.char-thumb.selected')
+                .forEach(el => el.classList.remove('selected'));
+                img.classList.add('selected');
+
+                // store & update
+                char = file;
+                localStorage.setItem('selectedChar', char);
+                playerIconImg.src = img.src;
+            });
+
+            list.appendChild(img);
+            });
+        } catch (e) {
+            console.error('Não foi possível listar os arquivos de ./Characters/', e);
+        }
+
+        // 2) default enemy icon stays constant for now
+        enemyIconImg.src = "./Characters/knight_male.png"; // placeholder
+
+        // 3) “Iniciar Jogo” — now char is never null if reloaded:
+        startForm.addEventListener('submit', e => {
+            e.preventDefault();
+            if (!char) {
+            return alert('Por favor, selecione um personagem antes de iniciar o jogo.');
+            }
+            handleStartGame(e);
+        });
+
+        // 4) other buttons
         restartButton.addEventListener('click', handleRestartGame);
         zoomButton.addEventListener('click', handleZoomToggle);
 
+        // 5) get your initial state from the server
         sendAction('get_state');
     });
+
 
     // --- UI Update Functions (unchanged except renderMap, drawZoomedMap) ---
 
@@ -353,10 +434,10 @@
 
             // mapeia tecla → value do botão
             const keyMap = {
-                w: 'f', // up
-                a: 'l', // left
-                s: 'b', // down
-                d: 'r'  // right
+                w: 'n', // up
+                a: 'w', // left
+                s: 's', // down
+                d: 'e'  // right
             };
 
             const btnValue = keyMap[event.key.toLowerCase()];
@@ -444,7 +525,10 @@
         const updateMapVisuals = () => {
             // Clear icons again (safety check)
             mapAreaDiv.querySelectorAll('.character-icon').forEach(icon => icon.remove());
-
+            const inScreen = document.getElementById('playerIconOverlay');
+            if (inScreen) {
+                inScreen.remove();
+            }
             if (zoomActive) {
                 // Ensure canvas is visible, draw zoomed content
                 mapImage.classList.add('hidden'); // Ensure hidden
@@ -500,11 +584,7 @@
     // --- MODIFIED: placeIcons ---
     // Places <img> icons on the map image (non-zoomed view)
     function placeIcons(state) {
-        const inScreen = document.getElementById('playerIconOverlay');
 
-        if (inScreen) {
-            inScreen.remove();
-        }
         const mapWidth = mapImage.offsetWidth;
         const mapHeight = mapImage.offsetHeight;
 
@@ -540,6 +620,7 @@
         const rotation = getRotation(facing);
 
         // Center the icon on the coordinates (x, y) using transform
+
         icon.style.left = `${x}px`;
         icon.style.top = `${y}px`;
         // Translate by -50% of the icon's OWN width/height to center it
@@ -653,8 +734,8 @@
         actionButtonsContainer.classList.add(isCombat ? 'combat-actions' : 'movement-actions');
 
         const buttons = isCombat
-            ? [ { value: 'a', text: '⚔️ Atacar', classes: ['btn-danger'] }, { value: 's', text: '✨ Habilidade', classes: ['btn-primary'] }, { value: 't', text: '🏃 Fugir', classes: ['btn-secondary'] } ]
-            : [ { value: 'l', text: '⬅️', classes: ['btn-action'] }, { value: 'f', text: '⬆️', classes: ['btn-action'] }, { value: 'b', text: '⬇️', classes: ['btn-action'] }, { value: 'r', text: '➡️', classes: ['btn-action'] } ];
+            ? [ { value: 'a', text: '⚔️ Atacar', classes: ['btn-danger'] }, { value: 'sp', text: '✨ Habilidade', classes: ['btn-primary'] }, { value: 't', text: '🏃 Fugir', classes: ['btn-secondary'] } ]
+            : [ { value: 'w', text: '⬅️', classes: ['btn-action'] }, { value: 'n', text: '⬆️', classes: ['btn-action'] }, { value: 's', text: '⬇️', classes: ['btn-action'] }, { value: 'e', text: '➡️', classes: ['btn-action'] } ];
 
         buttons.forEach(info => {
             const btn = document.createElement('button');
@@ -730,9 +811,9 @@
     }
 
     // --- Utility Functions (unchanged) ---
-    function getRotation(facing = 'b') { /* unchanged */
+    function getRotation(facing = 's') { /* unchanged */
         switch (facing) {
-            case 'f': return 180; case 'r': return -90; case 'l': return 90; case 'b': return 0; default: return 0;
+            case 'n': return 180; case 'e': return -90; case 'w': return 90; case 's': return 0; default: return 0;
         }
     }
 

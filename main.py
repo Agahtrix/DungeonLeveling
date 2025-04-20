@@ -12,7 +12,7 @@ sides =np.array([[ -1, 0], [ 0, 1] , [ 1, 0] , [ 0, -1]]
              
 , dtype= np.int32)
 
-places = ['f', 'r', 'b', 'l' ] 
+places = ['n', 'e', 's', 'w' ] 
               # N, L, S, O
 walkable = [1,6,7,8] # door, corridor, room
 
@@ -54,52 +54,36 @@ class Being:
         
 
     def move_being(self, action=None, map=None, enemies=None, player=None, valid_mov=True):
-        """Move o ser. Jogador usa tank controls, NPC usa movimento aleatório."""
+        """Move o ser. Jogador usa controles padrão: 'n', 'e', 's', 'w'.
+           NPC usa movimento aleatório."""
+        # PLAYER
         if self.is_player:
-            current_facing_index = places.index(self.facing)
-    
-            if action == 'l':  # Rotacionar para a Esquerda
-                new_facing_index = (current_facing_index - 1 + len(places)) % len(places)  # Wrap around
-                self.facing = places[new_facing_index]
-                print(f"{self.name} virou para '{self.facing}'")
-    
-            elif action == 'r':  # Rotacionar para a Direita
-                new_facing_index = (current_facing_index + 1) % len(places)  # Wrap around
-                self.facing = places[new_facing_index]
-                print(f"{self.name} virou para '{self.facing}'")
-                
-            elif action == 'f':  # Mover para Frente (na direção facing)
-                movement_vector = sides[current_facing_index]
+            if action in places:
+                idx = places.index(action)
+                movement_vector = sides[idx]
                 new_position = self.position + movement_vector
-                # Converte new_position para tupla para indexar corretamente o array map
+                self.facing = places[idx]
+
                 if (not any(np.array_equal(new_position, enemy.position) for enemy in enemies)
-                        and (int(map[tuple(new_position)]) in walkable)):
-                    self.position = new_position
-                else:
-                    return
-                print(f"{self.name} moveu para frente ({self.facing}) para {self.position}")
-    
-            elif action == 'b':  # Mover para Trás (oposto da direção facing)
-                movement_vector = sides[current_facing_index]
-                new_position = self.position - movement_vector
-                if (not any(np.array_equal(new_position, enemy.position) for enemy in enemies)
-                        and (int(map[tuple(new_position)]) in walkable)):
+                        and int(map[tuple(new_position)]) in walkable):
                     self.position = new_position
                 else:
                     valid_mov = False
-                    return
-                print(f"{self.name} moveu para trás (oposto de {self.facing}) para {self.position}")
-    
+            else:
+                valid_mov = False
+
+
+        # NPC
         else:
-            # Movimentação de NPC com direção aleatória
             random_index = random.randint(0, 3)
-            movement = sides[random_index]
-            new_position = self.position + movement
-            # print(f"NPC {self.name} tentando mover de {self.position} para {new_position}")
+            movement_vector = sides[random_index]
+            new_position = self.position + movement_vector
+
             if (not any(np.array_equal(new_position, enemy.position) for enemy in enemies)
-                    and (not np.array_equal(new_position, player.position))
-                    and (int(map[tuple(new_position)]) in walkable)):
+                    and not np.array_equal(new_position, player.position)
+                    and int(map[tuple(new_position)]) in walkable):
                 self.position = new_position
+
      
     def get_dict(self, map=None):
         # Return player state as a dictionary
@@ -204,14 +188,13 @@ class Game:
             
         valid_mov = True
         
-        print("\nPlayer:" , self.player.position, action)
         
         if action in places:
             self.player.move_being(action, self.map, self.enemies, valid_mov=valid_mov)
-            print("\nPlayer:" , self.player.position)
+
             
-        elif action in ['a', 's']:
-            use_special = (action == 's')
+        elif action in ['a', 'sp']:
+            use_special = (action == 'sp')
             roll = random.randint(1, 100)
             damage = calculate_damage(self.player, self.current_enemy, roll, use_special)
             dmg = self.current_enemy.take_damage(damage)
@@ -261,18 +244,12 @@ class Game:
             "game_over": self.game_over,
         }
 
-# --- Instância global do jogo ---
 game = Game()
 
-# --- MODIFIED Handler ---
 class RPGRequestHandler(SimpleHTTPRequestHandler):
 
-    # Override log_message to prevent cluttering the console during AJAX polling
-    # def log_message(self, format, *args):
-    #    # Uncomment the line below to re-enable basic logging
-    #    # super().log_message(format, *args)
-    #    pass
-
+    def log_message(self, format, *args):
+        pass
 
     def do_GET(self):
         parsed = urlparse(self.path)
@@ -294,7 +271,7 @@ class RPGRequestHandler(SimpleHTTPRequestHandler):
                     game.new_game(name, class_number)
                 elif action == "restart":
                     game.__init__() # Re-initialize game
-                elif action in ['a', 's', 't', 'f', 'r', 'b', 'l']:
+                elif action in ['a', 'sp', 't', 'n', 'e', 's', 'w']:
                     if game.player is not None: # Only process if game started
                         game.process_player_action(action)
                 # Action 'get_state' or any other/no action just returns current state

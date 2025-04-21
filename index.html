@@ -188,6 +188,7 @@
             /* Size for the NON-ZOOMED view (using <img> tags) */
             width: 24px;
             height: 24px;
+            z-index: 10;
             /* transform-origin: center center; */
             /* Improves rendering for pixel art if char.png is low-res */
             image-rendering: pixelated; /* Or auto */
@@ -196,7 +197,7 @@
         }
 
         .enemy-icon {
-            filter: hue-rotate(180deg) brightness(1.1); /* Example: make enemy red-ish */
+            z-index: 5;
         }
 
         /* Separator (unchanged) */
@@ -235,27 +236,27 @@
 <body>
 <div class="container">
 
-    <h2 id="page-title" class="page-title">Carregando...</h2>
+    <h2 id="page-title" class="page-title">Loading...</h2>
 
-    <div id="loading-indicator" class="hidden"  class="loading-indicator">Buscando estado do jogo...</div>
+    <div id="loading-indicator" class="hidden" class="loading-indicator">Fetching game state...</div>
     <div id="error-message" class="error-message hidden" role="alert"></div>
 
     <section id="character-creation" class="form-section hidden">
 
-        <h3>Criar Personagem</h3>
+        <h3>Create Character</h3>
         
         <form id="start-form">
         <div class="form-group">
-        <label for="player-name">Nome:</label>
-        <input type="text" id="player-name" name="name" placeholder="Seu nome" required>
+        <label for="player-name">Name:</label>
+        <input type="text" id="player-name" name="name" placeholder="Your name" required>
         </div>
         
         <div class="form-group">
-        <label for="player-class">Classe (1-8):</label>
+        <label for="player-class">Class (1-8):</label>
         <input type="number" id="player-class" name="class" min="1" max="8" value="1" required>
         </div>
         
-        <button type="submit" class="btn btn-primary">Iniciar Jogo</button>
+        <button type="submit" class="btn btn-primary">Start Game</button>
         </form>
 
         <div id="character-list" class="character-list"></div>
@@ -266,52 +267,53 @@
 
         <div class="stats-area">
             <section id="player-section" class="stats-section">
-                <h3>Jogador</h3>
-                <div id="player-stats" class="stats-content" aria-live="polite">Carregando...</div>
+                <h3>Player</h3>
+                <div id="player-stats" class="stats-content" aria-live="polite">Loading...</div>
             </section>
 
             <section id="enemy-section" class="stats-section hidden">
-                <h3>Inimigo</h3>
+                <h3>Enemy</h3>
                 <div id="enemy-stats" class="stats-content" aria-live="polite"></div>
             </section>
         </div>
 
         <section class="map-section">
-             <div class="map-header">
-                 <h3>Mapa</h3>
-                 <button type="button" id="zoom-button" class="btn btn-secondary">🔍 Zoom</button>
-             </div>
-             <!-- The container for map/canvas, now centered -->
-             <div class="map-area">
-                 <img id="map-image" src="" alt="Mapa do jogo (Carregando...)">
-                 <!-- MODIFIED: Canvas size -->
-                 <canvas id="map-canvas" width="100" height="100" class="hidden"></canvas>
-             </div>
-          </section>
+                <div class="map-header">
+                    <h3>Map</h3>
+                    <button type="button" id="zoom-button" class="btn btn-secondary">🔍 Zoom</button>
+                </div>
+                <!-- The container for map/canvas, now centered -->
+                <div class="map-area">
+                    <img id="map-image" src="" alt="Game map (Loading...)">
+                    <!-- MODIFIED: Canvas size -->
+                    <canvas id="map-canvas" width="100" height="100" class="hidden"></canvas>
+                </div>
+            </section>
 
         <hr class="separator">
 
         <section class="log-section">
-            <h3>Histórico</h3>
-            <div id="log-content" aria-live="polite">Carregando...</div>
+            <h3>Log</h3>
+            <div id="log-content" aria-live="polite">Loading...</div>
         </section>
 
         <section id="action-buttons-section" class="action-buttons-section">
-            <h3>Ações</h3>
-             <div id="action-buttons-container" class="action-buttons-container">
-                 </div>
+            <h3>Actions</h3>
+                <div id="action-buttons-container" class="action-buttons-container">
+                </div>
         </section>
 
         <div id="game-over-message" class="game-over-message hidden">
             GAME OVER
         </div>
-        <button id="restart-button" class="btn btn-danger">Reiniciar Jogo</button>
+        <button type="button" id="restart-button" class="btn btn-danger">Restart Game</button>
 
     </section>
 </div>
+    
 
 <script>
-    // --- DOM Elements (unchanged) ---
+    // --- DOM Elements ---
     const pageTitle = document.getElementById('page-title');
     const loadingIndicator = document.getElementById('loading-indicator');
     const errorMessage = document.getElementById('error-message');
@@ -387,17 +389,17 @@
             list.appendChild(img);
             });
         } catch (e) {
-            console.error('Não foi possível listar os arquivos de ./Characters/', e);
+            console.error('Could not list the files from ./Characters/', e);
         }
 
         // 2) default enemy icon stays constant for now
-        enemyIconImg.src = "./Characters/knight_male.png"; // placeholder
+        enemyIconImg.src = "./Enemies/kobold_scout.png"; // placeholder
 
         // 3) “Iniciar Jogo” — now char is never null if reloaded:
         startForm.addEventListener('submit', e => {
             e.preventDefault();
             if (!char) {
-            return alert('Por favor, selecione um personagem antes de iniciar o jogo.');
+                return alert('Please select a character before starting the game.');
             }
             handleStartGame(e);
         });
@@ -418,21 +420,18 @@
         if (isLoading) errorMessage.classList.add('hidden');
     }
     function showError(message) { /* unchanged */
-        errorMessage.textContent = `Erro: ${message}`;
+        errorMessage.textContent = `Error: ${message}`;
         errorMessage.classList.remove('hidden');
         showLoading(false);
     }
 
 
     document.addEventListener('keydown', function(event) {
-        // W, A, S, D → movimento
-        // só processa quando não estiver num INPUT (evita sobrescrever digitação)
         if (['w','a','s','d'].includes(event.key.toLowerCase()) 
             && document.activeElement.tagName !== 'INPUT') {
             
             event.preventDefault();
 
-            // mapeia tecla → value do botão
             const keyMap = {
                 w: 'n', // up
                 a: 'w', // left
@@ -452,22 +451,22 @@
 
 
 
-    function updateUI(state) { /* unchanged */
+    function updateUI(state) {
         currentState = state;
         showLoading(false);
         errorMessage.classList.add('hidden');
 
         if (!state) {
-            showError('Recebido estado inválido do servidor.');
+            showError('Received invalid state from server.');
             return;
         }
 
         if (state.needs_setup) {
-            pageTitle.textContent = 'Novo Jogo - Dungeon Leveling';
+            pageTitle.textContent = 'New Game - Dungeon Leveling';
             characterCreationDiv.classList.remove('hidden');
             gameStatusDiv.classList.add('hidden');
         } else {
-            pageTitle.textContent = 'Status do Jogo - Dungeon Leveling';
+            pageTitle.textContent = 'Game Status - Dungeon Leveling';
             characterCreationDiv.classList.add('hidden');
             gameStatusDiv.classList.remove('hidden');
 
@@ -481,35 +480,49 @@
             actionButtonsSection.classList.toggle('hidden', state.game_over);
         }
     }
+
     function renderPlayerStats(player) { /* unchanged */
         if (player) {
             playerStatsDiv.innerHTML = `
-                <span><strong>Nome:</strong> ${player.name || 'N/A'}</span>
+                <span><strong>Name:</strong> ${player.name || 'N/A'}</span>
                 <span><strong>HP:</strong> ${player.hp ?? 'N/A'} / ${player.max_hp ?? 'N/A'}</span>
-                <span><strong>Classe:</strong> ${player.class_number ?? 'N/A'}</span>
-                <span><strong>Defesa:</strong> ${player.def ?? 'N/A'}</span>
-                <span><strong>Ataque:</strong> ${player.atk ?? 'N/A'}</span>
-                <span><strong>Especial:</strong> ${player.special ?? 'N/A'}</span>`;
+                <span><strong>Class:</strong> ${player.class_number ?? 'N/A'}</span>
+                <span><strong>Defense:</strong> ${player.def ?? 'N/A'}</span>
+                <span><strong>Attack:</strong> ${player.atk ?? 'N/A'}</span>
+                <span><strong>Special:</strong> ${player.special ?? 'N/A'}</span>`;
             playerSectionDiv.classList.remove('hidden');
         } else {
-            playerStatsDiv.textContent = 'Dados do jogador indisponíveis.';
+            playerStatsDiv.textContent = 'Player data unavailable.';
         }
     }
+
     function renderEnemyStats(enemy) { /* unchanged */
         if (enemy) {
             enemyStatsDiv.innerHTML = `
-                <span><strong>Nome:</strong> ${enemy.name || 'N/A'}</span>
+                <span><strong>Name:</strong> ${enemy.name || 'N/A'}</span>
                 <span><strong>HP:</strong> ${enemy.hp ?? 'N/A'} / ${enemy.max_hp ?? 'N/A'}</span>
-                <span><strong>Classe:</strong> ${enemy.class_number ?? 'N/A'}</span>
-                <span><strong>Defesa:</strong> ${enemy.def ?? 'N/A'}</span>
-                <span><strong>Ataque:</strong> ${enemy.atk ?? 'N/A'}</span>
-                <span><strong>Especial:</strong> ${enemy.special ?? 'N/A'}</span>`;
+                <span><strong>Class:</strong> ${enemy.class_number ?? 'N/A'}</span>
+                <span><strong>Defense:</strong> ${enemy.def ?? 'N/A'}</span>
+                <span><strong>Attack:</strong> ${enemy.atk ?? 'N/A'}</span>
+                <span><strong>Special:</strong> ${enemy.special ?? 'N/A'}</span>`;
             enemySectionDiv.classList.remove('hidden');
         } else {
             enemyStatsDiv.innerHTML = '';
             enemySectionDiv.classList.add('hidden');
         }
     }
+
+    function clearAllOverlays() {
+        const wrapper = canvasCtx.canvas.parentElement;
+        if (!wrapper) return;
+
+        // grab both the single player overlay and any number of enemy overlays
+        wrapper
+            .querySelectorAll('#playerIconOverlay, .enemyIconOverlay')
+            .forEach(el => el.remove());
+    }
+
+
 
     // --- MODIFIED: renderMap ---
     // Handles showing/hiding image vs canvas and triggering updates
@@ -525,16 +538,15 @@
         const updateMapVisuals = () => {
             // Clear icons again (safety check)
             mapAreaDiv.querySelectorAll('.character-icon').forEach(icon => icon.remove());
-            const inScreen = document.getElementById('playerIconOverlay');
-            if (inScreen) {
-                inScreen.remove();
-            }
+
             if (zoomActive) {
                 // Ensure canvas is visible, draw zoomed content
                 mapImage.classList.add('hidden'); // Ensure hidden
                 mapCanvas.classList.remove('hidden'); // Ensure visible
                 drawZoomedMap(state); // Call the updated drawing function
             } else {
+                if (canvasCtx) clearAllOverlays();
+                
                 // Ensure image is visible, place icons on it
                 mapImage.classList.remove('hidden'); // Ensure visible
                 mapCanvas.classList.add('hidden'); // Ensure hidden
@@ -581,9 +593,13 @@
         }
     }
 
-    // --- MODIFIED: placeIcons ---
-    // Places <img> icons on the map image (non-zoomed view)
+
     function placeIcons(state) {
+        // --- Safety Checks ---
+        if (!mapImage || !mapAreaDiv) {
+            console.error("Map elements (mapImage or mapAreaDiv) not found.");
+            return;
+        }
 
         const mapWidth = mapImage.offsetWidth;
         const mapHeight = mapImage.offsetHeight;
@@ -593,44 +609,88 @@
             return;
         }
 
-        // Place Player Icon
+        // --- Place Player Icon ---
         if (state.player && state.player.position) {
-            const [relY, relX] = state.player.position;
-            const y = relY * mapHeight;
-            const x = relX * mapWidth;
-            // createIconElement now takes the preloaded image directly
-            createIconElement(playerIconImg, 'Jogador', ['player-icon'], state.player.facing, x, y);
+            try {
+                const [relY, relX] = state.player.position;
+                // Validate relative positions
+                if (typeof relY !== 'number' || typeof relX !== 'number' || relY < 0 || relY > 1 || relX < 0 || relX > 1) {
+                    console.warn(`Invalid player relative position: [${relY}, ${relX}]`);
+                } else {
+                    const y = relY * mapHeight;
+                    const x = relX * mapWidth;
+                    createIconElement(playerIconImg, 'Jogador', ['player-icon'], state.player.facing, x, y);
+                }
+            } catch (error) {
+                console.error("Error processing player data:", error, state.player);
+            }
+        } else {
+            console.log("No player data or position found in state.");
         }
 
-        // Place Enemy Icon
-        if (state.enemy && state.enemy.position) {
-            const [relY, relX] = state.enemy.position;
-            const y = relY * mapHeight;
-            const x = relX * mapWidth;
-            createIconElement(enemyIconImg, 'Inimigo', ['enemy-icon'], state.enemy.facing, x, y);
+        // --- Place Enemy Icons (Iterate through the list) ---
+        if (state.enemies && Array.isArray(state.enemies)) {
+
+            for (let i = 0; i < state.enemies.length; i++) { // Use a for loop for index access if needed for debugging
+                const enemy = state.enemies[i];
+                if (enemy && enemy.position) {
+                    try {
+                        const [relY, relX] = enemy.position;
+                        // Validate relative positions
+                        if (typeof relY !== 'number' || typeof relX !== 'number' || relY < 0 || relY > 1 || relX < 0 || relX > 1) {
+                            console.warn(`Invalid enemy[${i}] relative position: [${relY}, ${relX}]`);
+                            continue; // Skip this enemy
+                        }
+                        const y = relY * mapHeight;
+                        const x = relX * mapWidth;
+                        // Create a unique icon for each enemy using the preloaded image as a template
+                        createIconElement(enemyIconImg, `Inimigo ${i + 1}`, ['enemy-icon'], enemy.facing, x, y); // Added index to alt text
+                    } catch (error) {
+                        console.error(`Error processing enemy[${i}] data:`, error, enemy);
+                    }
+                }
+            }
         }
     }
 
-    // --- MODIFIED: createIconElement ---
-    // Creates an <img> element for icons in non-zoomed view
     function createIconElement(imgElement, altText, classes, facing, x, y) {
-        const icon = imgElement.cloneNode(); // Use preloaded image data
+        // Ensure the source image element is valid before cloning
+        if (!(imgElement instanceof HTMLImageElement)) {
+            console.error("Invalid image element passed to createIconElement:", imgElement);
+            return;
+        }
+
+        const icon = imgElement.cloneNode(true); // Clone the preloaded image element
         icon.alt = altText;
         icon.classList.add('character-icon', ...classes); // Apply base and specific classes
+
+        // Basic validation for x, y coordinates
+        if (typeof x !== 'number' || typeof y !== 'number') {
+            console.warn(`Invalid coordinates for icon "${altText}": (x=${x}, y=${y})`);
+            // Set default position or skip appending? Let's default to 0,0 for now.
+            x = 0;
+            y = 0;
+        }
+
+        // Calculate rotation (ensure getRotation handles invalid 'facing' values)
         const rotation = getRotation(facing);
 
-        // Center the icon on the coordinates (x, y) using transform
-
+        // Center the icon on the coordinates (x, y) and apply rotation
+        icon.style.position = 'absolute'; // Ensure absolute positioning for left/top
         icon.style.left = `${x}px`;
         icon.style.top = `${y}px`;
-        // Translate by -50% of the icon's OWN width/height to center it
         icon.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
 
-        mapAreaDiv.appendChild(icon); // Append to the map area (which uses block display)
+        // Make sure mapAreaDiv exists before appending
+        if (mapAreaDiv) {
+            mapAreaDiv.appendChild(icon); // Append to the map area
+        } else {
+            console.error("mapAreaDiv is not available to append the icon:", icon);
+        }
     }
 
     function drawZoomedMap(state) {
-        const { player } = state;
+        const { player, enemies } = state;
         const viewSize = 100;              // canvas width/height
         const zoomedIconSize = 48;         // final on‑screen icon size
 
@@ -647,18 +707,20 @@
             canvasCtx.fillRect(0, 0, viewSize, viewSize);
             canvasCtx.fillStyle = 'white';
             canvasCtx.textAlign = 'center';
-            canvasCtx.fillText('Mapa carregando...', viewSize/2, viewSize/2);
+            canvasCtx.fillText('Mapa carregando...', viewSize / 2, viewSize / 2);
             return;
         }
 
+        // Calculate player's absolute position on the natural image
         const [relY, relX] = player.position;
         const naturalW = mapImage.naturalWidth;
         const naturalH = mapImage.naturalHeight;
         const playerAbsX = relX * naturalW;
         const playerAbsY = relY * naturalH;
 
-        let sx = playerAbsX - viewSize/2;
-        let sy = playerAbsY - viewSize/2;
+        // Determine viewport top-left (sx, sy) clamped within image bounds
+        let sx = playerAbsX - viewSize / 2;
+        let sy = playerAbsY - viewSize / 2;
         sx = Math.max(0, Math.min(sx, naturalW - viewSize));
         sy = Math.max(0, Math.min(sy, naturalH - viewSize));
 
@@ -676,32 +738,73 @@
             canvasCtx.fillRect(0, 0, viewSize, viewSize);
             canvasCtx.fillStyle = 'white';
             canvasCtx.textAlign = 'center';
-            canvasCtx.fillText('Erro ao desenhar mapa', viewSize/2, viewSize/2);
+            canvasCtx.fillText('Erro ao desenhar mapa', viewSize / 2, viewSize / 2);
             return;
         }
 
-        // — Overlay the player icon as an HTML <img> —
-        // This prevents canvas-pixelation for small icons.
-
+        // Prepare overlay container
         const wrapper = canvasCtx.canvas.parentElement;
-        let overlay = wrapper.querySelector('#playerIconOverlay');
-        if (!overlay) {
-            overlay = document.createElement('img');
-            overlay.id = 'playerIconOverlay';
-            overlay.src = playerIconImg.src;
-            overlay.style.position = 'absolute';
-            overlay.style.pointerEvents = 'none';
-            // ensure parent is relative so absolute overlay centers correctly
-            wrapper.style.position = 'relative';
-            wrapper.appendChild(overlay);
+        if (!wrapper) {
+            console.error("Cannot find wrapper element for overlays.");
+            return;
         }
-        // size + center + rotate
-        overlay.style.width = `${zoomedIconSize}px`;
-        overlay.style.height = `${zoomedIconSize}px`;
-        overlay.style.left = '50%';
-        overlay.style.top = '50%';
-        const rotationDeg = getRotation(player.facing);
-        overlay.style.transform = `translate(0%, 0%) rotate(${rotationDeg}deg)`;
+        // Ensure wrapper is positioned relative for absolute children
+        wrapper.style.position = 'relative';
+
+        // ---------------------- Player Overlay ----------------------
+        let playerOverlay = wrapper.querySelector('#playerIconOverlay');
+        if (!playerOverlay) {
+            playerOverlay = document.createElement('img');
+            playerOverlay.id = 'playerIconOverlay';
+            playerOverlay.src = playerIconImg.src;
+            playerOverlay.style.position = 'absolute';
+            playerOverlay.style.pointerEvents = 'none';
+            wrapper.appendChild(playerOverlay);
+        }
+        playerOverlay.style.width = `${zoomedIconSize}px`;
+        playerOverlay.style.height = `${zoomedIconSize}px`;
+        playerOverlay.style.left = '50%';
+        playerOverlay.style.top = '50%';
+        const playerRotation = getRotation(player.facing);
+        playerOverlay.style.transform = `translate(0%, 0%) rotate(${playerRotation}deg)`;
+
+        // ---------------------- Enemy Overlays ----------------------
+        // Remove old enemy overlays
+        wrapper.querySelectorAll('.enemyIconOverlay').forEach(el => el.remove());
+
+        if (Array.isArray(enemies)) {
+            enemies.forEach((enemy, i) => {
+                if (!enemy || !enemy.position) return;
+                const [eRelY, eRelX] = enemy.position;
+                // Validate relative position
+                if (typeof eRelY !== 'number' || typeof eRelX !== 'number') return;
+
+                // Compute absolute and local positions
+                const enemyAbsX = eRelX * naturalW;
+                const enemyAbsY = eRelY * naturalH;
+                const localX = enemyAbsX - sx;
+                const localY = enemyAbsY - sy;
+
+                // Skip if outside viewport
+                if (localX < 0 || localX > viewSize || localY < 0 || localY > viewSize) return;
+
+                // Create overlay image for enemy
+                const enemyOverlay = document.createElement('img');
+                enemyOverlay.src = enemyIconImg.src;
+                enemyOverlay.classList.add('enemyIconOverlay');
+                enemyOverlay.style.position = 'absolute';
+                enemyOverlay.style.pointerEvents = 'none';
+                enemyOverlay.style.width = `${zoomedIconSize}px`;
+                enemyOverlay.style.height = `${zoomedIconSize}px`;
+                // Position as percentage within wrapper
+                enemyOverlay.style.left = `${(localX / viewSize) * 100}%`;
+                enemyOverlay.style.top = `${(localY / viewSize) * 100}%`;
+                const enemyRotation = getRotation(enemy.facing);
+                enemyOverlay.style.transform = `translate(0%, 0%) rotate(${enemyRotation}deg)`;
+
+                wrapper.appendChild(enemyOverlay);
+            });
+        }
     }
 
 

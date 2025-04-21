@@ -12,7 +12,7 @@ sides =np.array([[ -1, 0], [ 0, 1] , [ 1, 0] , [ 0, -1]]
              
 , dtype= np.int32)
 
-places = ['n', 'e', 's', 'w' ] 
+directions = ['n', 'e', 's', 'w'] 
               # N, L, S, O
 walkable = [1,6,7,8] # door, corridor, room
 
@@ -23,7 +23,7 @@ n_enemies = 11
 
 # --- Being Class ---
 class Being:
-    """Representa um personagem ou inimigo no RPG."""
+    """Represents a character or enemy in the RPG."""
     def __init__(self, name, class_number, position, is_player=False):
         self.name = name
         self.cn = class_number
@@ -50,19 +50,20 @@ class Being:
 
         self.max_hp = self.hp  # Armazena HP máximo para referência
         self.position = position
-        self.facing = random.choice(places)
+        self.facing = random.choice(directions)
         
 
     def move_being(self, action=None, map=None, enemies=None, player=None, valid_mov=True):
-        """Move o ser. Jogador usa controles padrão: 'n', 'e', 's', 'w'.
-           NPC usa movimento aleatório."""
+        """Moves the being. Player uses standard controls: 'n', 'e', 's', 'w'.
+            NPC uses random movement."""
+
         # PLAYER
         if self.is_player:
-            if action in places:
-                idx = places.index(action)
+            if action in directions:
+                idx = directions.index(action)
                 movement_vector = sides[idx]
                 new_position = self.position + movement_vector
-                self.facing = places[idx]
+                self.facing = directions[idx]
 
                 if (not any(np.array_equal(new_position, enemy.position) for enemy in enemies)
                         and int(map[tuple(new_position)]) in walkable):
@@ -83,6 +84,7 @@ class Being:
                     and not np.array_equal(new_position, player.position)
                     and int(map[tuple(new_position)]) in walkable):
                 self.position = new_position
+                self.facing = directions[random_index] 
 
      
     def get_dict(self, map=None):
@@ -128,14 +130,94 @@ def calculate_damage(attacker, defender, roll, use_special=False):
 
 # --- Inimigos disponíveis ---
 ENEMY_TYPES = {
-    1: ["Rato Gigante", "Gosma", "Batedor Kobold"],
-    2: ["Goblin", "Lobo Feroz", "Zumbi"],
-    3: ["Orc", "Guerreiro Esquelético", "Aranha Grande"],
-    4: ["Ogro", "Troll", "Espectro"],
-    5: ["Minotauro", "Golem de Pedra", "Filhote de Wyvern"],
-    6: ["Gigante", "Quimera", "Dragão Jovem"],
-    7: ["Senhor Elemental", "Hidra", "Golem Ancestral"],
-    8: ["Dragão", "Lich", "Príncipe Demônio"]
+    1: [
+        "Giant Rat",
+        "Blue Slime",
+        "Kobold Scout",
+        "Cave Spider",
+        "Forest Bat",
+        "Field Mouse",
+        "Swarm of Beetles",
+        "Mud Frog",
+    ],
+
+    2: [
+        "Goblin Grunt",
+        "Goblin Shaman",
+        "Dire Wolf",
+        "Bandit",
+        "Zombie",
+        "Harpy",
+        "Ghoul",
+        "Bandit Archer",
+    ],
+
+    3: [
+        "Orc Warrior",
+        "Orc Berserker",
+        "Skeletal Soldier",
+        "Giant Spider",
+        "Warg Rider",
+        "Wraith",
+        "Skeleton Knight",
+        "Tribal Shaman",
+    ],
+
+    4: [
+        "Ogre",
+        "Troll",
+        "Specter",
+        "Elite Orc Captain",
+        "Skeleton Archer",
+        "Fire Wraith",
+        "Orc War Priest",
+        "Bone Golem",
+    ],
+
+    5: [
+        "Minotaur",
+        "Stone Golem",
+        "Basilisk",
+        "Sand Wyrm",
+        "Bandit Captain",
+        "Ice Golem",
+        "Cave Scorpion",
+        "Bandit Mage",
+    ],
+
+    6: [
+        "Hill Giant",
+        "Chimera",
+        "Young Dragon",
+        "Fire Elemental",
+        "Lesser Lich",
+        "Earth Elemental",
+        "Storm Drake",
+        "Dark Knight",
+    ],
+
+    7: [
+        "Elemental Lord",
+        "Hydra",
+        "Ancient Golem",
+        "Orc Warlord",
+        "Shadow Assassin",
+        "Death Knight",
+        "Sea Serpent",
+        "Volcanic Elemental",
+    ],
+
+    8: [
+        "Elder Dragon",
+        "Lich King",
+        "Archdemon",
+        "Titan",
+        "Void Entity",
+        "Prime Elemental",
+        "Celestial Phoenix",
+        "World Serpent",
+        "Abyssal Horror",
+    ],
 }
 
 def create_enemies(map, class_number, n_enemies):
@@ -147,16 +229,40 @@ def create_enemies(map, class_number, n_enemies):
         random_indices = np.random.choice(len_pos, size=n_enemies, replace=False)
         choices = possible_positions[random_indices]
     else:
-        print(f"Ocorreu um erro possible_positions returnou apenas {len_pos}.")
+        print(f"An error occurred, possible_positions returned only {len_pos}.")
         return
     
     enemies = []
     for i in range(n_enemies):
-        possible_names = ENEMY_TYPES.get(class_number, [f"Anomalia Classe {class_number}"])
+        possible_names = ENEMY_TYPES.get(class_number, [f"Anomaly Class {class_number}"])
         name = random.choice(possible_names)
         enemies.append(Being(name, class_number, choices[i]))
     
     return enemies
+
+
+
+def get_nearby_enemies(enemies, player, map, radius=6):
+    """
+    Returns all enemies whose grid position
+    (via .grid_position()) is within 'radius' squares
+    of the player's position.
+    """
+
+    
+    px, py = player.position
+    r2 = radius * radius
+
+    nearby = []
+    append = nearby.append
+    for e in enemies:
+        ex, ey = e.position
+        dx = ex - px
+        dy = ey - py
+        if dx*dx + dy*dy <= r2:
+            append(e.get_dict(map=map))
+    return nearby if nearby else None
+
 
 # --- Classe que controla o estado do jogo ---
 class Game:
@@ -179,17 +285,17 @@ class Game:
         self.player = Being(player_name if player_name.strip() else "Hero", class_number, start_position, is_player=True)
         self.enemies = create_enemies(self.map, class_number, n_enemies)
         self.game_over = False
-        self.log.append(f"\nBem-vindo, {self.player.name}! ")
+        self.log.append(f"\nWelcome, {self.player.name}!")
 
     def process_player_action(self, action):
         if self.game_over:
-            self.log.append("\nJogo finalizado. Reinicie para jogar novamente.")
+            self.log.append("\nGame over. Restart to play again.")
             return
             
         valid_mov = True
         
         
-        if action in places:
+        if action in directions:
             self.player.move_being(action, self.map, self.enemies, valid_mov=valid_mov)
 
             
@@ -198,27 +304,28 @@ class Game:
             roll = random.randint(1, 100)
             damage = calculate_damage(self.player, self.current_enemy, roll, use_special)
             dmg = self.current_enemy.take_damage(damage)
-            act = "usa habilidade especial" if use_special else "ataca"
-            self.log.append(f"{self.player.name} {act} {self.current_enemy.name}! (Roll: {roll}) causou {dmg} de dano.")
+            act = "uses special ability" if use_special else "attacks"
+            self.log.append(f"{self.player.name} {act} {self.current_enemy.name}! (Roll: {roll}) dealt {dmg} damage.")
             if not self.current_enemy.is_alive():
-                self.log.append(f"\n*** Vitória! {self.current_enemy.name} foi derrotado. ***")
+                self.log.append(f"\n*** Victory! {self.current_enemy.name} was defeated. ***")
                 #self.enemy = create_enemy(self.map, self.player.cn)
-                #self.log.append(f"\nUm novo inimigo surge: {self.enemy.name}.")
+                #self.log.append(f"\nA new enemy appears: {self.enemy.name}.")
             else:
                 self.enemy_turn()
         elif action == 't':
-            self.log.append(f"{self.player.name} tentou fugir... e conseguiu!")
+            self.log.append(f"{self.player.name} tried to escape... and succeeded!")
             #self.enemy = create_enemy(self.map, self.player.cn)
-            #self.log.append(f"\nMas um novo inimigo já está à espreita: {self.enemy.name}.")
+            #self.log.append(f"\nBut a new enemy is already lurking: {self.enemy.name}.")
         elif action == 'x':
-            self.log.append("\nEncerrando o jogo. Até a próxima!")
+            self.log.append("\nEnding the game. See you next time!")
             self.game_over = True
-        
-        if  valid_mov:
+
+        if valid_mov:
             for i in range(len(self.enemies)):
                 # print(f"\nEnemy{i}:" , self.enemies[i].position)
                 self.enemies[i].move_being(map=self.map, enemies=self.enemies, player=self.player)
                 # print(f"\nEnemy{i}:" , self.enemies[i].position)
+
              
     def enemy_turn(self):
         if not self.current_enemy.is_alive():
@@ -226,9 +333,9 @@ class Game:
         roll = random.randint(1, 100)
         damage = calculate_damage(self.current_enemy, self.player, roll, use_special=False)
         dmg = self.player.take_damage(damage)
-        self.log.append(f"{self.current_enemy.name} ataca {self.player.name}! (Roll: {roll}) causou {dmg} de dano.")
+        self.log.append(f"{self.current_enemy.name} attacks {self.player.name}! (Roll: {roll}) dealt {dmg} damage.")
         if not self.player.is_alive():
-            self.log.append(f"\n--- Game Over: {self.player.name} foi derrotado por {self.current_enemy.name}. ---")
+            self.log.append(f"\n--- Game Over: {self.player.name} was defeated by {self.current_enemy.name}. ---")
             self.game_over = True
 
 
@@ -239,7 +346,8 @@ class Game:
             "needs_setup": self.player is None,
             "player": self.player.get_dict(map=self.map) if self.player else None,
             "enemy": self.current_enemy.get_dict(map=self.map) if self.current_enemy else None,
-            "log": self.log[:], # Send a copy of the recent log
+            "enemies": get_nearby_enemies(self.enemies, self.player, self.map) if self.enemies is not None and self.player is not None else None,
+            "log": self.log[:],  # Send a copy of the recent log
             "map_path": self.map_path,
             "game_over": self.game_over,
         }
@@ -325,13 +433,13 @@ class ThreadingSimpleServer(ThreadingMixIn, HTTPServer):
 def run_server(port=8000):
     server_address = ("", port)
     httpd = ThreadingSimpleServer(server_address, RPGRequestHandler)
-    print(f"Servidor RPG rodando em http://localhost:{port}")
+    print(f"RPG server running at http://localhost:{port}\n")
     
-    print("Certifique-se que 'index.html' e 'cave.json' estão no diretório de execução.")
+    print("Make sure 'index.html' and 'cave.json' are in the execution directory.")
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
-        print("\nEncerrando o servidor.")
+        print("\nShutting down the server.")
         httpd.shutdown()
         httpd.server_close()
 

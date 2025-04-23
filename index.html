@@ -344,6 +344,7 @@
     let zoomActive = false;
     let playerIconImg = new Image();
     let enemyIconImg = new Image();
+    
     document.addEventListener('DOMContentLoaded', async () => {
         // grab the elements you actually rendered:
         const list           = document.getElementById('character-list');
@@ -469,23 +470,25 @@
             pageTitle.textContent = 'Game Status - Dungeon Leveling';
             characterCreationDiv.classList.add('hidden');
             gameStatusDiv.classList.remove('hidden');
+            const enemy = Array.isArray(state.enemies) && Number.isInteger(state.enemy) ? state.enemies[state.enemy] : false;
 
             renderPlayerStats(state.player);
-            renderEnemyStats(state.enemy);
+            renderEnemyStats(enemy);
             renderMap(state); // Calls updated renderMap
             renderLog(state.log);
-            renderActionButtons(state.enemy, state.game_over);
+            renderActionButtons(enemy, state.game_over);
+            
 
             gameOverMessage.classList.toggle('hidden', !state.game_over);
             actionButtonsSection.classList.toggle('hidden', state.game_over);
         }
     }
 
-    function renderPlayerStats(player) { /* unchanged */
+    function renderPlayerStats(player) {
         if (player) {
             playerStatsDiv.innerHTML = `
                 <span><strong>Name:</strong> ${player.name || 'N/A'}</span>
-                <span><strong>HP:</strong> ${player.hp ?? 'N/A'} / ${player.max_hp ?? 'N/A'}</span>
+                <span><strong>HP:</strong> ${player.hp ?? 'N/A'} / ${player.max_hp ?? 'N/A'} (${player.hp && player.max_hp ? Math.round((player.hp / player.max_hp) * 100) + '%' : '0%'})</span>
                 <span><strong>Class:</strong> ${player.class_number ?? 'N/A'}</span>
                 <span><strong>Defense:</strong> ${player.def ?? 'N/A'}</span>
                 <span><strong>Attack:</strong> ${player.atk ?? 'N/A'}</span>
@@ -496,11 +499,11 @@
         }
     }
 
-    function renderEnemyStats(enemy) { /* unchanged */
+    function renderEnemyStats(enemy) {
         if (enemy) {
             enemyStatsDiv.innerHTML = `
                 <span><strong>Name:</strong> ${enemy.name || 'N/A'}</span>
-                <span><strong>HP:</strong> ${enemy.hp ?? 'N/A'} / ${enemy.max_hp ?? 'N/A'}</span>
+                <span><strong>HP:</strong> ${enemy.hp ?? 'N/A'} / ${enemy.max_hp ?? 'N/A'} (${enemy.hp && enemy.max_hp ? Math.round((enemy.hp / enemy.max_hp) * 100) + '%' : '0%'})</span>
                 <span><strong>Class:</strong> ${enemy.class_number ?? 'N/A'}</span>
                 <span><strong>Defense:</strong> ${enemy.def ?? 'N/A'}</span>
                 <span><strong>Attack:</strong> ${enemy.atk ?? 'N/A'}</span>
@@ -520,6 +523,10 @@
         wrapper
             .querySelectorAll('#playerIconOverlay, .enemyIconOverlay')
             .forEach(el => el.remove());
+    }
+    
+    function idToFilename(id) {
+      return id.toLowerCase().replace(/\s+/g, '_') + '.png';
     }
 
 
@@ -595,6 +602,7 @@
 
 
     function placeIcons(state) {
+        const shape = state.map_shape;
         // --- Safety Checks ---
         if (!mapImage || !mapAreaDiv) {
             console.error("Map elements (mapImage or mapAreaDiv) not found.");
@@ -612,7 +620,9 @@
         // --- Place Player Icon ---
         if (state.player && state.player.position) {
             try {
-                const [relY, relX] = state.player.position;
+                let [relY, relX] = state.player.position;
+                relY = relY/shape[0];
+                relX = relX/shape[1];
                 // Validate relative positions
                 if (typeof relY !== 'number' || typeof relX !== 'number' || relY < 0 || relY > 1 || relX < 0 || relX > 1) {
                     console.warn(`Invalid player relative position: [${relY}, ${relX}]`);
@@ -635,7 +645,9 @@
                 const enemy = state.enemies[i];
                 if (enemy && enemy.position) {
                     try {
-                        const [relY, relX] = enemy.position;
+                        let [relY, relX] = enemy.position;
+                        relY = relY/shape[0];
+                        relX = relX/shape[1];
                         // Validate relative positions
                         if (typeof relY !== 'number' || typeof relX !== 'number' || relY < 0 || relY > 1 || relX < 0 || relX > 1) {
                             console.warn(`Invalid enemy[${i}] relative position: [${relY}, ${relX}]`);
@@ -691,6 +703,7 @@
 
     function drawZoomedMap(state) {
         const { player, enemies } = state;
+        const shape = state.map_shape;
         const viewSize = 100;              // canvas width/height
         const zoomedIconSize = 48;         // final on‑screen icon size
 
@@ -715,8 +728,8 @@
         const [relY, relX] = player.position;
         const naturalW = mapImage.naturalWidth;
         const naturalH = mapImage.naturalHeight;
-        const playerAbsX = relX * naturalW;
-        const playerAbsY = relY * naturalH;
+        const playerAbsX = relX/shape[1] * naturalW;
+        const playerAbsY = relY/shape[0] * naturalH;
 
         // Determine viewport top-left (sx, sy) clamped within image bounds
         let sx = playerAbsX - viewSize / 2;
@@ -780,8 +793,8 @@
                 if (typeof eRelY !== 'number' || typeof eRelX !== 'number') return;
 
                 // Compute absolute and local positions
-                const enemyAbsX = eRelX * naturalW;
-                const enemyAbsY = eRelY * naturalH;
+                const enemyAbsX = eRelX/shape[1] * naturalW;
+                const enemyAbsY = eRelY/shape[0] * naturalH;
                 const localX = enemyAbsX - sx;
                 const localY = enemyAbsY - sy;
 
@@ -790,7 +803,7 @@
 
                 // Create overlay image for enemy
                 const enemyOverlay = document.createElement('img');
-                enemyOverlay.src = enemyIconImg.src;
+                enemyOverlay.src = enemyIconImg.src; // idToFilename(enemy.name);
                 enemyOverlay.classList.add('enemyIconOverlay');
                 enemyOverlay.style.position = 'absolute';
                 enemyOverlay.style.pointerEvents = 'none';
@@ -832,7 +845,8 @@
         }
         actionButtonsSection.classList.remove('hidden');
 
-        const isCombat = Boolean(enemy);
+        
+        const isCombat = enemy;
         actionButtonsContainer.className = 'action-buttons-container';
         actionButtonsContainer.classList.add(isCombat ? 'combat-actions' : 'movement-actions');
 

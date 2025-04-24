@@ -472,7 +472,7 @@ class RPGRequestHandler(SimpleHTTPRequestHandler):
             super().do_GET()
 
 
-# --- Servidor multithread (Unchanged) ---
+# --- Servidor multithread  ---
 class ThreadingSimpleServer(ThreadingMixIn, HTTPServer):
     daemon_threads = True
 

@@ -538,22 +538,22 @@
     let enemyIconImg = new Image();
 
     function highlightLogText(logText, playerName, enemyName) {
-  let result = logText;
+        let result = logText;
 
-  if (playerName) {
-    const escapedPlayer = playerName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const playerRegex = new RegExp(`\\b(${escapedPlayer})\\b`, 'g');
-    result = result.replace(playerRegex, '<span class="player-name">$1</span>');
-  }
+        if (playerName) {
+            const escapedPlayer = playerName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const playerRegex = new RegExp(`\\b(${escapedPlayer})\\b`, 'g');
+            result = result.replace(playerRegex, '<span class="player-name">$1</span>');
+        }
 
-  if (enemyName) {
-    const escapedEnemy = enemyName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const enemyRegex = new RegExp(`\\b(${escapedEnemy})\\b`, 'g');
-    result = result.replace(enemyRegex, '<span class="enemy-name">$1</span>');
-  }
+        if (enemyName) {
+            const escapedEnemy = enemyName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const enemyRegex = new RegExp(`\\b(${escapedEnemy})\\b`, 'g');
+            result = result.replace(enemyRegex, '<span class="enemy-name">$1</span>');
+        }
 
-  return result;
-}
+        return result;
+    }
 
     
     document.addEventListener('DOMContentLoaded', async () => {

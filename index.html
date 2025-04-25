@@ -120,15 +120,15 @@
         .btn-action:hover { background-color: var(--accent-color-action-hover); }
         .btn-secondary { background-color: var(--bg-color-input); color: var(--text-color-light); border: 1px solid var(--border-color); }
         .btn-secondary:hover { background-color: var(--border-color); }
-        #start-form button[type="submit"], #restart-button { width: calc(100% - var(--spacing-medium)); margin: var(--spacing-medium) var(--spacing-small) 0 var(--spacing-small); }
-        #restart-button { margin-top: var(--spacing-large); }
+        #start-form button[type="submit"]
+        
 
         /* Game Status Layout  */
         .stats-area { display: flex; flex-wrap: wrap; gap: var(--spacing-xlarge); margin-bottom: var(--spacing-xlarge); }
         .stats-section { flex: 1; min-width: 220px; background-color: var(--bg-color-section); padding: var(--spacing-large); border-radius: var(--border-radius-medium); }
         .stats-content { line-height: 1.8; }
         .stats-content span { display: block; margin-bottom: var(--spacing-small); }
-        .stats-content strong { color: var(--accent-color-primary); min-width: 70px; display: inline-block; }
+        .stats-content strong { min-width: 70px; display: inline-block; }
 
         /* --- Map Area Styles --- */
         .map-section {
@@ -144,8 +144,22 @@
             margin-bottom: var(--spacing-medium);
         }
         .map-header h3 { margin-bottom: 0; border-bottom: none; }
-        #zoom-button { padding: var(--spacing-small) var(--spacing-medium); font-size: var(--font-size-small); }
-
+        #zoom-button, #restart-button {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 1000;
+            padding: var(--spacing-small) var(--spacing-medium);
+            font-size: var(--font-size-small);
+            border-radius: 999px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        
+        #restart-button {
+            left: 1rem;
+            right: auto;
+        }
+        
         /* --- MODIFIED: .map-area --- */
         .map-area {
             position: relative; /* Needed for absolute positioning of icons */
@@ -204,11 +218,59 @@
         .separator { border: 0; height: 1px; background: var(--border-color-light); margin: var(--spacing-xlarge) 0; }
 
         /* Log Area  */
-        .log-section { margin-bottom: var(--spacing-xlarge); }
-        #log-content { max-height: 250px; overflow-y: auto; border: 1px solid var(--border-color-light); padding: var(--spacing-medium); background: var(--bg-color-log); border-radius: var(--border-radius-medium); font-size: var(--font-size-small); line-height: 1.5; color: var(--text-color-medium); scroll-behavior: smooth; }
+        /* ————— Default (large screens) ————— */
+        .log-section {
+            position: fixed;
+            top: 3rem;
+            right: 0rem;
+            z-index: 1000;
+            width: 20vw;
+            /* max-width: 700px; */
+            height: 90vh;        /* almost full height */
+            padding: var(--spacing-small) var(--spacing-medium);
+            pointer-events: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #log-content {
+            flex: 1;             /* fill the .log-section vertically */
+            overflow-y: auto;
+            min-width: 0;        /* for flex children */
+            border: 1px solid var(--border-color-light);
+            padding: var(--spacing-medium);
+            background: transparent;
+            border-radius: var(--border-radius-medium);
+            font-size: var(--font-size-small);
+            line-height: 1.8;
+            color: var(--text-color-medium);
+            scroll-behavior: smooth;
+        }
+
+        /* scrollbar styling stays the same */
         #log-content::-webkit-scrollbar { width: 8px; }
-        #log-content::-webkit-scrollbar-track { background: var(--bg-color-section); border-radius: 4px; }
-        #log-content::-webkit-scrollbar-thumb { background-color: var(--border-color); border-radius: 4px; border: 2px solid var(--bg-color-section); }
+        #log-content::-webkit-scrollbar-track  { background: var(--bg-color-section); border-radius: 4px; }
+        #log-content::-webkit-scrollbar-thumb  { background-color: var(--border-color); border-radius: 4px; border: 2px solid var(--bg-color-section); }
+
+
+        /* ————— Smaller screens: drop below the map ————— */
+        @media (max-width: 1159px) {
+            .log-section {
+                position: static;        /* no longer fixed */
+                width: 100%;             /* full container width */
+                line-height: 0.6;
+                height: auto;            /* shrink to content + max-height below */
+                max-height: 20vh;        /* short vertical footprint */
+                margin: var(--spacing-medium) 0; /* space above & below */
+                pointer-events: auto;    /* if you want users to scroll the log */
+            }
+
+            #log-content {
+                line-height: 1.5;
+                max-height: 100%;       /* let the parent’s 20vh control it */
+            }
+        }
+
 
         /* Action Buttons Area  */
         .action-buttons-section { margin-bottom: var(--spacing-xlarge); }
@@ -218,16 +280,145 @@
         .action-buttons-container.combat-actions .btn { max-width: calc(33% - var(--spacing-medium)); min-width: 100px; }
 
         .hidden { display: none !important; }
+
+
+        /* put this in your stylesheet */
+        .fab-container {
+            position: fixed;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: grid;
+            flex-direction: column;
+            align-items: center;
+            grid-template-areas:
+                ".    up    ."
+                "left center right"
+                ".   down   .";
+            grid-gap: 0rem;
+            pointer-events: none;
+            z-index: 1000;
+        }
+        .fab-container button {
+            pointer-events: auto;
+            width: 3rem;
+            height: 3rem;
+            border-radius: 50%;
+            border: none;
+            font-size: 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            cursor: pointer;
+            transition: transform 0.1s ease;
+        }
+        .fab-container button:active {
+            transform: scale(0.9);
+        }
+
+        /* area assignments */
+        .btn-up    { grid-area: up;    }
+        .btn-down  { grid-area: down;  }
+        .btn-left  { grid-area: left;  }
+        .btn-right { grid-area: right; }
+        /* center can be used if you ever need a middle button */
+        .btn-center { grid-area: center; }
+        /* 1) Float the whole stats-area at top-left */
+        .stats-area {
+            font-size: 13px;
+            line-height: 14px;
+            position: fixed;
+            top: 3rem;
+            left: 1rem;
+            z-index: 1000;
+            /* let clicks pass through empty space if you want:
+                pointer-events: none; */
+            /* but allow interaction inside the box: */
+            /* pointer-events: auto; */
+        }
+
+        /* 2) Sections themselves are transparent */
+        .stats-section {
+            background: transparent;
+            margin-bottom: 0.5rem;   /* space between Player & Enemy boxes */
+        }
+
+
+        .stats-content span {
+            color: #fff;
+            line-height: 14px;
+            /* four-way shadow to simulate an outline */
+            text-shadow:
+                -1px -1px 0 #000,
+                1px -1px 0 #000,
+                -1px  1px 0 #000,
+                1px  1px 0 #000;
+            display: block;  /* one stat per line */
+        }
+
+
+        .stats-section h3 {
+            margin: 0 0 0.25rem;
+            color: #fff;
+            text-shadow:
+                -1px -1px 0 #000,
+                1px -1px 0 #000,
+                -1px  1px 0 #000,
+                1px  1px 0 #000;
+        }
+
         @media (max-width: 600px) {
             body { padding: var(--spacing-medium); }
             .container { padding: var(--spacing-medium); }
             .page-title { font-size: 1.6rem; }
             h3 { font-size: var(--font-size-large); }
-            .stats-area { flex-direction: column; gap: var(--spacing-large); }
-            .stats-section { min-width: 100%; }
-            .action-buttons-container .btn { max-width: calc(50% - var(--spacing-medium)); min-width: 100px; }
-            .action-buttons-container.movement-actions .btn { font-size: 1.2rem; }
 
+            .stats-area {
+                position: fixed;
+                top: 3rem;
+                left: 0;
+                right: 0;
+                display: flex;
+                justify-content: space-between;
+                padding: 0 0.5rem;
+                flex-direction: row; /* KEEP LEFT-RIGHT even on small screens */
+                align-items: flex-start;
+            }
+
+            .stats-section {
+                min-width: auto;
+                max-width: 48%;     /* prevent overflow */
+                box-sizing: border-box;
+            }
+
+            .stats-section h3 {
+                font-size: 1.0rem;
+                display: block;
+            }
+
+            .stats-content span {
+                font-size: 0.65rem;
+            }
+
+            .action-buttons-container .btn {
+                max-width: calc(50% - var(--spacing-medium));
+                min-width: 100px;
+            }
+
+            .action-buttons-container.movement-actions .btn {
+                font-size: 1.1rem;
+            }
+        }
+
+        .player-name, .player-label {
+            color: #4caf50;
+            font-weight: bold;
+        }
+
+        .enemy-name, .enemy-label {
+            color: #f44336;
+            font-weight: bold;
         }
 
     </style>
@@ -263,48 +454,51 @@
     </section>
 
     <section id="game-status" class="hidden">
+        <button type="button" id="restart-button" class="btn btn-danger"> 🔄 </button>
+        <button type="button" id="zoom-button" class="btn btn-secondary"> 🔍 </button>
 
-        <div class="stats-area">
+
+        <div class="stats-area"> 
             <section id="player-section" class="stats-section">
-                <h3>Player</h3>
-                <div id="player-stats" class="stats-content" aria-live="polite">Loading...</div>
+              <h3>Player</h3>
+              <div id="player-stats" class="stats-content" aria-live="polite">Loading...</div>
             </section>
-
+          
             <section id="enemy-section" class="stats-section hidden">
-                <h3>Enemy</h3>
-                <div id="enemy-stats" class="stats-content" aria-live="polite"></div>
+              <h3>Enemy</h3>
+              <div id="enemy-stats" class="stats-content" aria-live="polite"></div>
             </section>
         </div>
+      
 
         <section class="map-section">
                 <div class="map-header">
-                    <h3>Map</h3>
-                    <button type="button" id="zoom-button" class="btn btn-secondary">🔍 Zoom</button>
+                    <!-- <h3>Map</h3> -->
+
                 </div>
                 <!-- The container for map/canvas, now centered -->
                 <div class="map-area">
                     <img id="map-image" src="" alt="Game map (Loading...)">
                     <canvas id="map-canvas" width="100" height="100" class="hidden"></canvas>
                 </div>
-            </section>
+        </section>
 
-        <hr class="separator">
-
+        <!-- <hr class="separator"> -->
         <section class="log-section">
             <h3>Log</h3>
             <div id="log-content" aria-live="polite">Loading...</div>
         </section>
 
         <section id="action-buttons-section" class="action-buttons-section">
-            <h3>Actions</h3>
-                <div id="action-buttons-container" class="action-buttons-container">
-                </div>
+            <div id="action-buttons-container" class="action-buttons-container">
+            </div>
         </section>
+
 
         <div id="game-over-message" class="game-over-message hidden">
             GAME OVER
         </div>
-        <button type="button" id="restart-button" class="btn btn-danger">Restart Game</button>
+        
 
     </section>
 </div>
@@ -342,6 +536,25 @@
     let zoomActive = false;
     let playerIconImg = new Image();
     let enemyIconImg = new Image();
+
+    function highlightLogText(logText, playerName, enemyName) {
+  let result = logText;
+
+  if (playerName) {
+    const escapedPlayer = playerName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const playerRegex = new RegExp(`\\b(${escapedPlayer})\\b`, 'g');
+    result = result.replace(playerRegex, '<span class="player-name">$1</span>');
+  }
+
+  if (enemyName) {
+    const escapedEnemy = enemyName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const enemyRegex = new RegExp(`\\b(${escapedEnemy})\\b`, 'g');
+    result = result.replace(enemyRegex, '<span class="enemy-name">$1</span>');
+  }
+
+  return result;
+}
+
     
     document.addEventListener('DOMContentLoaded', async () => {
         // grab the elements you actually rendered:
@@ -426,23 +639,31 @@
 
 
     document.addEventListener('keydown', function(event) {
-        if (['w','a','s','d','f','q','r'].includes(event.key.toLowerCase()) 
-            && document.activeElement.tagName !== 'INPUT') {
-            
+        const key = event.key.toLowerCase();
+
+        // only respond to our control keys when you're not typing in an input
+        if (['w','a','s','d','f','q','r'].includes(key) &&
+            document.activeElement.tagName !== 'INPUT') {
             event.preventDefault();
 
+            // map physical keys → game action values
             const keyMap = {
-                w: ['n', 'movement-actions'],
-                a: ['w', 'movement-actions'],
-                s: ['s', 'movement-actions'],
-                d: ['e', 'movement-actions'],
-                f: ['a', 'action-buttons-container'],
-                q: ['sp', 'action-buttons-container'],
-                r: ['t', 'action-buttons-container']
+            // movement
+            w: 'n',  // up
+            a: 'w',  // left
+            s: 's',  // down
+            d: 'e',  // right
+            // combat
+            f: 'a',  // attack
+            q: 'sp', // special
+            r: 't'   // run
             };
 
-            const [value, container] = keyMap[event.key.toLowerCase()] || [];
-            const btn = document.querySelector(`.${container} button[value="${value}"]`);
+            const value = keyMap[key];
+            if (!value) return;
+
+            // look for the button inside our floating-D-pad container
+            const btn = document.querySelector(`.fab-container button[value="${value}"]`);
             if (btn) btn.click();
         }
     });
@@ -467,7 +688,7 @@
             characterCreationDiv.classList.remove('hidden');
             gameStatusDiv.classList.add('hidden');
         } else {
-            pageTitle.textContent = 'Game Status - Dungeon Leveling';
+            pageTitle.textContent = 'Dungeon Leveling';
             characterCreationDiv.classList.add('hidden');
             gameStatusDiv.classList.remove('hidden');
             const enemy = Array.isArray(state.enemies) && Number.isInteger(state.enemy) ? state.enemies[state.enemy] : false;
@@ -475,7 +696,7 @@
             renderPlayerStats(state.player);
             renderEnemyStats(enemy);
             renderMap(state); // Calls updated renderMap
-            renderLog(state.log);
+            renderLog(state.log, state.player.name, enemy ? enemy.name : false );
             renderActionButtons(enemy, state.game_over);
             
 
@@ -487,12 +708,12 @@
     function renderPlayerStats(player) {
         if (player) {
             playerStatsDiv.innerHTML = `
-                <span><strong>Name:</strong> ${player.name || 'N/A'}</span>
-                <span><strong>HP:</strong> ${player.hp ?? 'N/A'} / ${player.max_hp ?? 'N/A'} (${player.hp && player.max_hp ? Math.round((player.hp / player.max_hp) * 100) + '%' : '0%'})</span>
-                <span><strong>Class:</strong> ${player.class_number ?? 'N/A'}</span>
-                <span><strong>Defense:</strong> ${player.def ?? 'N/A'}</span>
-                <span><strong>Attack:</strong> ${player.atk ?? 'N/A'}</span>
-                <span><strong>Special:</strong> ${player.special ?? 'N/A'}</span>`;
+                <span><strong class="player-label">Name:</strong> ${player.name || 'N/A'}</span>
+                <span><strong class="player-label">HP:</strong> ${player.hp ?? 'N/A'} / ${player.max_hp ?? 'N/A'} (${player.hp && player.max_hp ? Math.round((player.hp / player.max_hp) * 100) + '%' : '0%'})</span>
+                <span><strong class="player-label">Class:</strong> ${player.class_number ?? 'N/A'}</span>
+                <span><strong class="player-label">Defense:</strong> ${player.def ?? 'N/A'}</span>
+                <span><strong class="player-label">Attack:</strong> ${player.atk ?? 'N/A'}</span>
+                <span><strong class="player-label">Special:</strong> ${player.special ?? 'N/A'}</span>`;
             playerSectionDiv.classList.remove('hidden');
         } else {
             playerStatsDiv.textContent = 'Player data unavailable.';
@@ -502,18 +723,19 @@
     function renderEnemyStats(enemy) {
         if (enemy) {
             enemyStatsDiv.innerHTML = `
-                <span><strong>Name:</strong> ${enemy.name || 'N/A'}</span>
-                <span><strong>HP:</strong> ${enemy.hp ?? 'N/A'} / ${enemy.max_hp ?? 'N/A'} (${enemy.hp && enemy.max_hp ? Math.round((enemy.hp / enemy.max_hp) * 100) + '%' : '0%'})</span>
-                <span><strong>Class:</strong> ${enemy.class_number ?? 'N/A'}</span>
-                <span><strong>Defense:</strong> ${enemy.def ?? 'N/A'}</span>
-                <span><strong>Attack:</strong> ${enemy.atk ?? 'N/A'}</span>
-                <span><strong>Special:</strong> ${enemy.special ?? 'N/A'}</span>`;
+                <span><strong class="enemy-label">Name:</strong> ${enemy.name || 'N/A'}</span>
+                <span><strong class="enemy-label">HP:</strong> ${enemy.hp ?? 'N/A'} / ${enemy.max_hp ?? 'N/A'} (${enemy.hp && enemy.max_hp ? Math.round((enemy.hp / enemy.max_hp) * 100) + '%' : '0%'})</span>
+                <span><strong class="enemy-label">Class:</strong> ${enemy.class_number ?? 'N/A'}</span>
+                <span><strong class="enemy-label">Defense:</strong> ${enemy.def ?? 'N/A'}</span>
+                <span><strong class="enemy-label">Attack:</strong> ${enemy.atk ?? 'N/A'}</span>
+                <span><strong class="enemy-label">Special:</strong> ${enemy.special ?? 'N/A'}</span>`;
             enemySectionDiv.classList.remove('hidden');
         } else {
             enemyStatsDiv.innerHTML = '';
             enemySectionDiv.classList.add('hidden');
         }
     }
+
 
     function clearAllOverlays() {
         const wrapper = canvasCtx.canvas.parentElement;
@@ -821,12 +1043,12 @@
     }
 
 
-    function renderLog(logEntries) {
+    function renderLog(logEntries, player_name, enemy_name) {
         logContentDiv.innerHTML = '';
         if (logEntries && logEntries.length > 0) {
             logEntries.forEach(entry => {
                 const p = document.createElement('p');
-                p.textContent = entry;
+                p.innerHTML = highlightLogText(entry, player_name, enemy_name);
                 logContentDiv.appendChild(p);
             });
             logContentDiv.scrollTop = logContentDiv.scrollHeight;
@@ -835,33 +1057,44 @@
         }
     }
 
-
     function renderActionButtons(enemy, isGameOver) {
-        actionButtonsContainer.innerHTML = '';
-
+        const container = actionButtonsContainer;
+        container.innerHTML = '';
+        container.className = '';               // clear old classes
         if (isGameOver) {
             actionButtonsSection.classList.add('hidden');
             return;
         }
         actionButtonsSection.classList.remove('hidden');
 
-        
-        const isCombat = enemy;
-        actionButtonsContainer.className = 'action-buttons-container';
-        actionButtonsContainer.classList.add(isCombat ? 'combat-actions' : 'movement-actions');
+        // make the floating-Dpad container
+        container.classList.add('fab-container');
 
-        const buttons = isCombat
-            ? [ { value: 'a', text: '⚔️ Attack', classes: ['btn-danger'] }, { value: 'sp', text: '✨ Special', classes: ['btn-primary'] }, { value: 't', text: '🏃 Run Away', classes: ['btn-secondary'] } ]
-            : [ { value: 'w', text: '⬅️', classes: ['btn-action'] }, { value: 'n', text: '⬆️', classes: ['btn-action'] }, { value: 's', text: '⬇️', classes: ['btn-action'] }, { value: 'e', text: '➡️', classes: ['btn-action'] } ];
+        // choose your 4 “slots” based on mode
+        const buttonDefs = enemy
+            // COMBAT: Atk=Up, Special=Left, Run=Right, (no Down slot)
+            ? [
+                { pos: 'up',    value: 'a',  text: '⚔️', classes: ['btn-danger'] },
+                { pos: 'left',  value: 'sp', text: '✨', classes: ['btn-primary'] },
+                { pos: 'right', value: 't',  text: '🏃', classes: ['btn-secondary'] }
+            ]
+            // MOVEMENT: ⬆️⬇️⬅️➡️ in their natural spots
+            : [
+                { pos: 'up',    value: 'n', text: '⬆️', classes: ['btn-action'] },
+                { pos: 'down',  value: 's', text: '⬇️', classes: ['btn-action'] },
+                { pos: 'left',  value: 'w', text: '⬅️', classes: ['btn-action'] },
+                { pos: 'right', value: 'e', text: '➡️', classes: ['btn-action'] }
+            ];
 
-        buttons.forEach(info => {
+        // render each one into its grid‐area
+        buttonDefs.forEach(({pos, value, text, classes}) => {
             const btn = document.createElement('button');
             btn.type = 'button';
-            btn.value = info.value;
-            btn.textContent = info.text;
-            btn.classList.add('btn', ...info.classes);
+            btn.value = value;
+            btn.textContent = text;
+            btn.classList.add(`btn-${pos}`, 'btn-fab', ...classes);
             btn.addEventListener('click', handleActionButtonClick);
-            actionButtonsContainer.appendChild(btn);
+            container.appendChild(btn);
         });
     }
 
@@ -918,11 +1151,8 @@
     // --- handleZoomToggle ---
     function handleZoomToggle() {
         zoomActive = !zoomActive;
-        zoomButton.textContent = zoomActive ? '🔎 Unzoom' : '🔍 Zoom';
-        // Re-render the map using the *current* state data but with the new zoom setting
+        zoomButton.textContent = zoomActive ? '🗺️' : '🔍';
         if (currentState) {
-            // Directly call renderMap, which now handles switching
-            // between image+icons and canvas drawing based on zoomActive
             renderMap(currentState);
         }
     }

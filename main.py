@@ -1,10 +1,11 @@
 import random
-
 import numpy as np
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 from socketserver import ThreadingMixIn
 from urllib.parse import urlparse, parse_qs
 import json
+import html
+from html.parser import HTMLParser
 
 import json2image as j2i
 
@@ -20,6 +21,59 @@ walkable = [1,6,7,8] # door, corridor, room
 json_filename = "cave.json" 
 class_number = 1
 n_enemies = 25
+
+
+class SimpleHTMLSanitizer(HTMLParser):
+    # tags e atributos permitidos
+    ALLOWED_TAGS = {'span'}
+    ALLOWED_ATTRS = {'class', 'style'}
+
+    def __init__(self):
+        super().__init__()
+        self._out = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag in self.ALLOWED_TAGS:
+            # filtra apenas atributos permitidos
+            safe_attrs = []
+            for name, val in attrs:
+                if name in self.ALLOWED_ATTRS and val is not None:
+                    # escapa valor de atributo
+                    esc_val = html.escape(val, quote=True)
+                    safe_attrs.append(f'{name}="{esc_val}"')
+            attr_str = (' ' + ' '.join(safe_attrs)) if safe_attrs else ''
+            self._out.append(f'<{tag}{attr_str}>')
+
+    def handle_endtag(self, tag):
+        if tag in self.ALLOWED_TAGS:
+            self._out.append(f'</{tag}>')
+
+    def handle_data(self, data):
+        # escapa todo texto
+        self._out.append(html.escape(data))
+
+    def handle_entityref(self, name):
+        # mantém entidades HTML (por ex. &amp;)
+        self._out.append(f'&{name};')
+
+    def handle_charref(self, name):
+        # mantém referências de caractere (por ex. &#x27;)
+        self._out.append(f'&#{name};')
+
+    def get_sanitized(self) -> str:
+        return ''.join(self._out)
+
+
+def sanitize_html(raw_html: str) -> str:
+    """
+    Remove quaisquer tags não-permitidas e atributos
+    fora de 'class' e 'style' no <span>, escapando todo texto.
+    """
+    sanitizer = SimpleHTMLSanitizer()
+    sanitizer.feed(raw_html)
+    sanitizer.close()
+    return sanitizer.get_sanitized()
+
 
 # --- Being Class ---
 class Being:
@@ -303,7 +357,7 @@ class Game:
         start_position = np.argwhere(self.map == 6)
         start_position = ensure_list(start_position[0])
         
-        self.player = Being(player_name if player_name.strip() else "Hero", class_number, start_position, is_player=True)
+        self.player = Being(player_name if sanitize_html(player_name.strip()) else "Hero", class_number, start_position, is_player=True)
         self.enemies = create_enemies(self.map, class_number, n_enemies)
         self.dict_enemies = [i.get_dict(map=self.map)["n"] for i in self.enemies]
         self.game_over = False
@@ -323,7 +377,6 @@ class Game:
             if valid_mov:
                 for i in range(len(self.enemies)):
                     self.enemies[i].move_being(map=self.map, enemies=self.enemies, player=self.player)
-
             
         elif action in ['a', 'sp'] and not bool_enemy:
             use_special = (action == 'sp')
@@ -332,7 +385,7 @@ class Game:
             damage = calculate_damage(self.player, enemy, roll, use_special)
             dmg = self.enemies[self.current_enemy].take_damage(damage)
 
-            act = "uses special ability" if use_special else "attacks"
+            act = "uses special ability at the" if use_special else "attacks the"
             self.log.append(f"{self.player.name} {act} {enemy.name}! (Roll: {roll}) dealt {dmg} damage.")
             if not self.enemies[self.current_enemy].is_alive():
                 self.log.append(f"\n*** Victory! {self.enemies[self.current_enemy].name} was defeated. ***")
@@ -353,7 +406,7 @@ class Game:
                 valid_escape = self.player.move_being(directions[rand_direction], self.map, self.enemies)
                 act = "succeeded" if valid_escape else act
             if act == "failed":
-                self.log.append(f"{self.player.name} tried to escape... and {act}! Receiving an attack of opportunity!")
+                self.log.append(f"{self.player.name} tried to escape... and {act}! Received an attack of opportunity!")
                 self.enemy_turn(self.enemies[self.current_enemy])
             else:
                 self.log.append(f"{self.player.name} tried to escape... and {act}!")

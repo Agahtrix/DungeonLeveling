@@ -872,7 +872,7 @@
                         const y = relY * mapHeight;
                         const x = relX * mapWidth;
                         // Create a unique icon for each enemy using the preloaded image as a template
-                        createIconElement(idToFilename(enemy.name), `Inimigo ${i + 1}`, ['enemy-icon'], enemy.facing, x, y); // Added index to alt text
+                        createIconElement(idToFilename(enemy.name), `enemy ${i + 1}`, ['enemy-icon'], enemy.facing, x, y); // Added index to alt text
                     } catch (error) {
                         console.error(`Error processing enemy[${i}] data:`, error, enemy);
                     }

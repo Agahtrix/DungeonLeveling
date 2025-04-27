@@ -373,7 +373,19 @@
             .container { padding: var(--spacing-medium); }
             .page-title { font-size: 1.6rem; }
             h3 { font-size: var(--font-size-large); }
-
+            
+            .map-area {
+                aspect-ratio: 1/1;
+                width: 100% !important;
+                height: auto !important;
+            }
+            
+            #map-canvas {
+                width: 100% !important;
+                height: 100% !important;
+                object-fit: contain;
+            }
+            
             .stats-area {
                 position: fixed;
                 top: 3rem;

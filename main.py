@@ -7,7 +7,7 @@ import json
 import html
 from html.parser import HTMLParser
 
-import json2image as j2i
+import dungeon_gen as dgen
 
 sides =np.array([[ -1, 0], [ 0, 1] , [ 1, 0] , [ 0, -1]] 
              
@@ -15,10 +15,10 @@ sides =np.array([[ -1, 0], [ 0, 1] , [ 1, 0] , [ 0, -1]]
 
 directions = ['n', 'e', 's', 'w'] 
               # N, L, S, O
-walkable = [1,6,7,8] # door, corridor, room
+walkable = [1,2,4,6,7,8] # door, corridor, room
 
 
-json_filename = "cave.json" 
+json_filename = "./maps/cave.json"  # if found it's used else it's created a new one
 class_number = 1
 n_enemies = 25
 
@@ -192,8 +192,9 @@ ENEMY_TYPES = {
         "Kobold Scout",
         "Cave Spider",
         "Forest Bat",
+        "Leech", 
         "Field Mouse",
-        "Swarm of Beetles",
+        "Giant Beetle",
         "Mud Frog",
     ],
 
@@ -206,6 +207,7 @@ ENEMY_TYPES = {
         "Harpy",
         "Ghoul",
         "Bandit Archer",
+        "Templar Knight", 
     ],
 
     3: [
@@ -342,9 +344,10 @@ def ensure_list(obj):
 # --- Classe que controla o estado do jogo ---
 class Game:
     def __init__(self):
-        self.map = j2i.load_dungeon(json_filename, return_values = True)
+        self.map = dgen.load_dungeon(json_filename, np.random.randint(35, 101), np.random.randint(35, 101), np.random.randint(16777216), return_values = True)
         self.map_path = self.map[1]
         self.map = self.map[0]
+        self.traps = np.argwhere(self.map == 4)
         self.log = []
         self.player = None
         self.enemies = None
@@ -375,6 +378,16 @@ class Game:
         if action in directions and bool_enemy:
             valid_mov = self.player.move_being(action, self.map, self.enemies)
             if valid_mov:
+                mask = np.all(self.traps == self.player.position, axis=1)
+                if np.any(mask):
+                    roll = random.randint(1, 100)
+                    dmg  = self.player.take_damage(int((1.0-(roll/100))*3) )
+                    self.log.append(
+                        f"{self.player.name} opens a door with a trap! (Roll: {roll}) and "
+                        f"{'received ' + str(dmg) + ' of damage' if dmg != 0 else 'dodged the trap at the last minute'}."
+                    )
+                    self.traps = self.traps[~mask]
+                    self.verify_game_over("Trap Door")
                 for i in range(len(self.enemies)):
                     self.enemies[i].move_being(map=self.map, enemies=self.enemies, player=self.player)
             
@@ -402,7 +415,7 @@ class Game:
             roll = random.randint(1, 100)
             rand_direction = random.randint(0, 3)
             act = "failed"
-            if roll > 33:
+            if roll > 30:
                 valid_escape = self.player.move_being(directions[rand_direction], self.map, self.enemies)
                 act = "succeeded" if valid_escape else act
             if act == "failed":
@@ -414,16 +427,20 @@ class Game:
         elif action == 'x':
             self.log.append("\nEnding the game. See you next time!")
             self.game_over = True
-
-             
+        
+        
+            
+    def verify_game_over(self, enemy_name):
+        if not self.player.is_alive():
+            self.log.append(f"\n--- Game Over: {self.player.name} was killed by {enemy_name}. ---")
+            self.game_over = True
+            
     def enemy_turn(self, enemy):
         roll = random.randint(1, 100)
         damage = calculate_damage(enemy, self.player, roll, use_special=False)
         dmg = self.player.take_damage(damage)
         self.log.append(f"{enemy.name} attacks {self.player.name}! (Roll: {roll}) dealt {dmg} damage.")
-        if not self.player.is_alive():
-            self.log.append(f"\n--- Game Over: {self.player.name} was defeated by {enemy.name}. ---")
-            self.game_over = True
+        self.verify_game_over(enemy.name)
 
 
     # --- NEW METHOD TO GET STATE AS DICT ---
@@ -534,7 +551,7 @@ def run_server(port=8000):
     httpd = ThreadingSimpleServer(server_address, RPGRequestHandler)
     print(f"RPG server running at http://localhost:{port}\n")
     
-    print("Make sure 'index.html' and 'cave.json' are in the execution directory.")
+    print("If './maps/cave.json' exists, it will be used else a new json map will be generated.")
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
@@ -546,4 +563,4 @@ if __name__ == "__main__":
     # Ensure map file exists before starting server
     # (Game() constructor now handles this)
     run_server(8000)
-
+    

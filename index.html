@@ -420,6 +420,10 @@
             color: #f44336;
             font-weight: bold;
         }
+        
+        canvas, #playerIconOverlay, .enemyIconOverlay {
+            filter: none !important;
+        }
 
     </style>
 </head>
@@ -535,7 +539,6 @@
     let currentState = null;
     let zoomActive = false;
     let playerIconImg = new Image();
-    let enemyIconImg = new Image();
 
     function highlightLogText(logText, playerName, enemyName) {
         let result = logText;
@@ -564,9 +567,8 @@
         // try to restore last-picked char
         let char = localStorage.getItem('selectedChar');
 
-        // 1) load character thumbnails
         try {
-            const res  = await fetch('./Characters/');
+            const res  = await fetch('./characters/');
             const text = await res.text();
             const doc  = new DOMParser().parseFromString(text, 'text/html');
 
@@ -576,23 +578,20 @@
 
             files.forEach(file => {
             const img = document.createElement('img');
-            img.src       = `./Characters/${file}`;
+            img.src       = `./characters/${file}`;
             img.alt       = file;
             img.className = 'char-thumb';
             
-            // if this matches our restored selection, mark it now:
             if (file === char) {
                 img.classList.add('selected');
                 playerIconImg.src = img.src;
             }
 
             img.addEventListener('click', () => {
-                // deselect everything, select this one
                 document.querySelectorAll('.char-thumb.selected')
                 .forEach(el => el.classList.remove('selected'));
                 img.classList.add('selected');
 
-                // store & update
                 char = file;
                 localStorage.setItem('selectedChar', char);
                 playerIconImg.src = img.src;
@@ -601,13 +600,10 @@
             list.appendChild(img);
             });
         } catch (e) {
-            console.error('Could not list the files from ./Characters/', e);
+            console.error('Could not list the files from ./characters/', e);
         }
 
-        // 2) default enemy icon stays constant for now
-        enemyIconImg.src = "./Enemies/kobold_scout.png"; // placeholder
-
-        // 3) “Iniciar Jogo” — now char is never null if reloaded:
+        
         startForm.addEventListener('submit', e => {
             e.preventDefault();
             if (!char) {
@@ -616,11 +612,9 @@
             handleStartGame(e);
         });
 
-        // 4) other buttons
         restartButton.addEventListener('click', handleRestartGame);
         zoomButton.addEventListener('click', handleZoomToggle);
 
-        // 5) get your initial state from the server
         sendAction('get_state');
     });
 
@@ -748,7 +742,7 @@
     }
     
     function idToFilename(id) {
-      return id.toLowerCase().replace(/\s+/g, '_') + '.png';
+      return './enemies/'+ id.toLowerCase().replace(/\s+/g, '_') + '.png';
     }
 
 
@@ -878,7 +872,7 @@
                         const y = relY * mapHeight;
                         const x = relX * mapWidth;
                         // Create a unique icon for each enemy using the preloaded image as a template
-                        createIconElement(enemyIconImg, `Inimigo ${i + 1}`, ['enemy-icon'], enemy.facing, x, y); // Added index to alt text
+                        createIconElement(idToFilename(enemy.name), `enemy ${i + 1}`, ['enemy-icon'], enemy.facing, x, y); // Added index to alt text
                     } catch (error) {
                         console.error(`Error processing enemy[${i}] data:`, error, enemy);
                     }
@@ -887,14 +881,19 @@
         }
     }
 
-    function createIconElement(imgElement, altText, classes, facing, x, y) {
-        // Ensure the source image element is valid before cloning
-        if (!(imgElement instanceof HTMLImageElement)) {
-            console.error("Invalid image element passed to createIconElement:", imgElement);
+    function createIconElement(imgSrcOrElement, altText, classes, facing, x, y) {
+        let icon;
+    
+        if (typeof imgSrcOrElement === 'string') {
+            icon = new Image();
+            icon.src = imgSrcOrElement;
+        } else if (imgSrcOrElement instanceof HTMLImageElement) {
+            icon = imgSrcOrElement.cloneNode(true);
+        } else {
+            console.error("Invalid image source passed to createIconElement:", imgSrcOrElement);
             return;
         }
-
-        const icon = imgElement.cloneNode(true); // Clone the preloaded image element
+    
         icon.alt = altText;
         icon.classList.add('character-icon', ...classes); // Apply base and specific classes
 
@@ -958,7 +957,12 @@
         let sy = playerAbsY - viewSize / 2;
         sx = Math.max(0, Math.min(sx, naturalW - viewSize));
         sy = Math.max(0, Math.min(sy, naturalH - viewSize));
-
+        
+        canvasCtx.save();
+        canvasCtx.filter = 'none';
+        canvasCtx.globalAlpha = 1;
+        canvasCtx.globalCompositeOperation = 'source-over';
+        
         try {
             canvasCtx.drawImage(
                 mapImage,
@@ -976,6 +980,8 @@
             canvasCtx.fillText('Error drawing map', viewSize / 2, viewSize / 2);
             return;
         }
+        
+        canvasCtx.restore();
 
         // Prepare overlay container
         const wrapper = canvasCtx.canvas.parentElement;
@@ -1025,7 +1031,7 @@
 
                 // Create overlay image for enemy
                 const enemyOverlay = document.createElement('img');
-                enemyOverlay.src = enemyIconImg.src; // idToFilename(enemy.name);
+                enemyOverlay.src = idToFilename(enemy.name);
                 enemyOverlay.classList.add('enemyIconOverlay');
                 enemyOverlay.style.position = 'absolute';
                 enemyOverlay.style.pointerEvents = 'none';
